@@ -1,0 +1,6 @@
+@Alerty.Api_HostAddress = http://localhost:5069
+
+GET {{Alerty.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
