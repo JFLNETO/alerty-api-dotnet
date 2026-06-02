@@ -146,13 +146,22 @@ http://localhost:5069/swagger
 ---
 
 # 🚧 Próximos passos
+Adicionar testes automatizados com xUnit
+Implementar autenticação JWT
+Proteger endpoints com autorização
+Melhorar segurança multiempresa
+Criar frontend em React + TypeScript
+Implementar jobs automáticos
+Integrar envio de notificações via WhatsApp
+Configurar deploy em VPS Linux
 
-- Front-end em React + TypeScript
-- Autenticação JWT
-- Multiempresa
-- Jobs automáticos
-- Integração WhatsApp
-- Deploy em VPS Linux
+---
+
+# 📌 Status do projeto
+
+Projeto em desenvolvimento.
+
+Atualmente o backend possui as principais operações de clientes, pagamentos e relatórios. As próximas etapas são testes automatizados, autenticação e melhorias de segurança.
 
 ---
 
@@ -160,6 +169,4 @@ http://localhost:5069/swagger
 
 Desenvolvido por José Ferreira Lima Neto.
 
-- Bubble.io Developer
-- Backend Developer (.NET em evolução)
-- PostgreSQL / APIs / n8n
+Desenvolvedor com experiência em Bubble.io, n8n, PostgreSQL, APIs REST e automações, atualmente em transição para desenvolvimento backend com C#/.NET.
