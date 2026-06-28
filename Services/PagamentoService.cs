@@ -7,9 +7,9 @@ public class PagamentoService
         _db = db;
     }
 
-    public object ConfirmarPagamento(ConfirmarPagamentoRequest request)
+    public object ConfirmarPagamento(ConfirmarPagamentoRequest request, int idEmpresa)
     {
-        var cliente = _db.Clientes.FirstOrDefault(c => c.Id == request.ClienteId);
+        var cliente = _db.Clientes.FirstOrDefault(c => c.Id == request.ClienteId && c.IdEmpresa == idEmpresa);
 
         if (cliente is null)
             throw new Exception("Cliente não encontrado.");

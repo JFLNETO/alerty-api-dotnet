@@ -30,9 +30,9 @@ public class ClienteService
             .ToList();
     }
 
-    public Cliente? BuscarPorId(int id)
+    public Cliente? BuscarPorId(int id, int idEmpresa)
     {
-        return _db.Clientes.FirstOrDefault(c => c.Id == id);
+        return _db.Clientes.FirstOrDefault(c => c.Id == id && c.IdEmpresa == idEmpresa);
     }
 
  public Cliente Criar(CriarClienteRequest request)
@@ -70,9 +70,9 @@ public class ClienteService
     return cliente;
 }
 
-    public Cliente Atualizar(int id, AtualizarClienteRequest request)
+    public Cliente Atualizar(int id, AtualizarClienteRequest request, int idEmpresa)
     {
-        var cliente = _db.Clientes.FirstOrDefault(c => c.Id == id);
+        var cliente = _db.Clientes.FirstOrDefault(c => c.Id == id && c.IdEmpresa == idEmpresa);
 
         if (cliente is null)
             throw new Exception("Cliente não encontrado.");
@@ -103,9 +103,9 @@ public class ClienteService
         return cliente;
     }
 
-    public Cliente AlterarStatus(int id, bool ativo)
+    public Cliente AlterarStatus(int id, bool ativo, int idEmpresa)
     {
-        var cliente = _db.Clientes.FirstOrDefault(c => c.Id == id);
+        var cliente = _db.Clientes.FirstOrDefault(c => c.Id == id && c.IdEmpresa == idEmpresa);
 
         if (cliente is null)
             throw new Exception("Cliente não encontrado.");

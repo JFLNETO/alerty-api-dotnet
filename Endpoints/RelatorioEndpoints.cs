@@ -1,17 +1,21 @@
+using System.Security.Claims;
+
 public static class RelatorioEndpoints
 {
     public static void MapRelatorioEndpoints(this WebApplication app)
     {
         app.MapGet("/relatorios/pagamentos", (
-            int? idEmpresa,
+            ClaimsPrincipal user,
             DateOnly? dataInicio,
             DateOnly? dataFim,
-            AppDbContext db) =>
+            AppDbContext db
+        ) =>
         {
-            var query = db.HistoricoPagamentos.AsQueryable();
+            var idEmpresa = int.Parse(user.FindFirst("id_empresa")!.Value);
 
-            if (idEmpresa.HasValue)
-                query = query.Where(p => p.IdEmpresa == idEmpresa.Value);
+            var query = db.HistoricoPagamentos
+                .Where(p => p.IdEmpresa == idEmpresa)
+                .AsQueryable();
 
             if (dataInicio.HasValue)
                 query = query.Where(p => DateOnly.FromDateTime(p.DataPagamento) >= dataInicio.Value);
@@ -31,6 +35,6 @@ public static class RelatorioEndpoints
                 quantidadePagamentos = pagamentos.Count,
                 pagamentos
             });
-        });
+        }).RequireAuthorization();
     }
 }

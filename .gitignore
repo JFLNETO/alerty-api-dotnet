@@ -25,5 +25,6 @@ appsettings.Local.json
 .DS_Store
 Thumbs.db
 
-#frontend
-frontend/
+# Frontend
+alerty-frontend/
+node_modules/
