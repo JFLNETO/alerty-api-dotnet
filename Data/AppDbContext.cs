@@ -7,6 +7,7 @@ public class AppDbContext : DbContext
     public DbSet<Usuario> Usuarios { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
     public DbSet<ConfigEmpresa> ConfigEmpresas { get; set; }
+    public DbSet<Servico> Servicos { get; set; }
 
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
@@ -17,9 +18,6 @@ public class AppDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        // ===============================
-        // CLIENTES
-        // ===============================
         modelBuilder.Entity<Cliente>(entity =>
         {
             entity.ToTable("clientes", "alerty");
@@ -37,9 +35,6 @@ public class AppDbContext : DbContext
             entity.Property(c => c.Selos).HasColumnName("selos");
         });
 
-        // ===============================
-        // HISTÓRICO DE PAGAMENTOS
-        // ===============================
         modelBuilder.Entity<HistoricoPagamento>(entity =>
         {
             entity.ToTable("historico_cobranca", "alerty");
@@ -53,9 +48,6 @@ public class AppDbContext : DbContext
             entity.Property(p => p.CreatedDate).HasColumnName("created_date");
         });
 
-        // ===============================
-        // USUÁRIOS
-        // ===============================
         modelBuilder.Entity<Usuario>(entity =>
         {
             entity.ToTable("usuarios", "alerty");
@@ -67,9 +59,6 @@ public class AppDbContext : DbContext
             entity.Property(u => u.CreatedDate).HasColumnName("created_date");
         });
 
-        // ===============================
-        // REFRESH TOKENS
-        // ===============================
         modelBuilder.Entity<RefreshToken>(entity =>
         {
             entity.ToTable("refresh_tokens", "alerty");
@@ -81,9 +70,6 @@ public class AppDbContext : DbContext
             entity.Property(r => r.CriadoEm).HasColumnName("criado_em");
         });
 
-        // ===============================
-        // CONFIG EMPRESA
-        // ===============================
         modelBuilder.Entity<ConfigEmpresa>(entity =>
         {
             entity.ToTable("config_empresa", "alerty");
@@ -99,6 +85,20 @@ public class AppDbContext : DbContext
             entity.Property(e => e.DataVencimento).HasColumnName("data_vencimento");
             entity.Property(e => e.CreatedDate).HasColumnName("created_date");
             entity.Property(e => e.ModifiedDate).HasColumnName("modified_date");
+        });
+
+        modelBuilder.Entity<Servico>(entity =>
+        {
+            entity.ToTable("servicos", "alerty");
+            entity.HasKey(s => s.Id);
+            entity.Property(s => s.Id).HasColumnName("id_unico");
+            entity.Property(s => s.Nome).HasColumnName("nome");
+            entity.Property(s => s.IdEmpresa).HasColumnName("id_empresa");
+            entity.Property(s => s.Valor).HasColumnName("valor");
+            entity.Property(s => s.RecorrenciaValor).HasColumnName("recorrencia_valor");
+            entity.Property(s => s.RecorrenciaTipo).HasColumnName("recorrencia_tipo");
+            entity.Property(s => s.CreatedDate).HasColumnName("created_date");
+            entity.Property(s => s.ModifiedDate).HasColumnName("modified_date");
         });
     }
 }
