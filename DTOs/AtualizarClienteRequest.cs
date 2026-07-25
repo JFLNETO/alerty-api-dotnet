@@ -8,7 +8,5 @@ public class AtualizarClienteRequest
 
     public int[]? IdServicos { get; set; }
 
-    public int IdEmpresa { get; set; }
-
     public string? UrlFoto { get; set; }
 }

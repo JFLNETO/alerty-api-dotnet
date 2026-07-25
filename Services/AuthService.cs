@@ -23,34 +23,34 @@ public class AuthService
         // -------------------------------------------------------
 
         if (string.IsNullOrWhiteSpace(request.Email))
-            throw new Exception("E-mail é obrigatório.");
+            throw new AppException("E-mail é obrigatório.");
 
         if (!Regex.IsMatch(request.Email, @"^[^@\s]+@[^@\s]+\.[^@\s]+$"))
-            throw new Exception("E-mail inválido.");
+            throw new AppException("E-mail inválido.");
 
         if (string.IsNullOrWhiteSpace(request.Senha))
-            throw new Exception("Senha é obrigatória.");
+            throw new AppException("Senha é obrigatória.");
 
         if (request.Senha.Length < 6)
-            throw new Exception("A senha deve ter no mínimo 6 caracteres.");
+            throw new AppException("A senha deve ter no mínimo 6 caracteres.");
 
         if (string.IsNullOrWhiteSpace(request.NomeDono))
-            throw new Exception("Nome do dono é obrigatório.");
+            throw new AppException("Nome do dono é obrigatório.");
 
         if (string.IsNullOrWhiteSpace(request.NomeEmpresa))
-            throw new Exception("Nome da empresa é obrigatório.");
+            throw new AppException("Nome da empresa é obrigatório.");
 
         if (string.IsNullOrWhiteSpace(request.WhatsappDono))
-            throw new Exception("WhatsApp é obrigatório.");
+            throw new AppException("WhatsApp é obrigatório.");
 
         // Remove tudo que não for número para validar o WhatsApp
         var whatsappNumeros = Regex.Replace(request.WhatsappDono, @"\D", "");
 
         if (whatsappNumeros.Length < 10 || whatsappNumeros.Length > 13)
-            throw new Exception("WhatsApp inválido. Informe com DDD e número.");
+            throw new AppException("WhatsApp inválido. Informe com DDD e número.");
 
         if (_db.Usuarios.Any(u => u.Email == request.Email))
-            throw new Exception("E-mail já cadastrado.");
+            throw new AppException("E-mail já cadastrado.");
 
         // -------------------------------------------------------
         // CRIA A EMPRESA EM config_empresa
@@ -104,10 +104,10 @@ public class AuthService
     public object Login(string email, string senha, bool manterConectado)
     {
         var usuario = _db.Usuarios.FirstOrDefault(u => u.Email == email)
-            ?? throw new Exception("Credenciais inválidas.");
+            ?? throw new AppException("Credenciais inválidas.");
 
         if (!BCrypt.Net.BCrypt.Verify(senha, usuario.SenhaHash))
-            throw new Exception("Credenciais inválidas.");
+            throw new AppException("Credenciais inválidas.");
 
         var accessToken = GerarAccessToken(usuario);
         var refreshToken = GerarRefreshTokenString();
@@ -142,10 +142,10 @@ public class AuthService
         var token = _db.RefreshTokens.FirstOrDefault(t => t.Token == refreshToken);
 
         if (token is null || token.ExpiraEm < DateTime.UtcNow)
-            throw new Exception("Refresh token inválido ou expirado.");
+            throw new AppException("Refresh token inválido ou expirado.");
 
         var usuario = _db.Usuarios.FirstOrDefault(u => u.Id == token.IdUsuario)
-            ?? throw new Exception("Usuário não encontrado.");
+            ?? throw new AppException("Usuário não encontrado.");
 
         return new { accessToken = GerarAccessToken(usuario) };
     }

@@ -22,7 +22,7 @@ public static class ClienteEndpoints
             var cliente = service.BuscarPorId(id, idEmpresa);
 
             if (cliente is null)
-                return Results.NotFound("Cliente não encontrado.");
+                return Results.NotFound(new { erro = "Cliente não encontrado." });
 
             return Results.Ok(cliente);
         }).RequireAuthorization();
@@ -33,17 +33,10 @@ public static class ClienteEndpoints
             ClienteService service
         ) =>
         {
-            try
-            {
-                request.IdEmpresa = int.Parse(user.FindFirst("id_empresa")!.Value);
-                var novoCliente = service.Criar(request);
+            var idEmpresa = int.Parse(user.FindFirst("id_empresa")!.Value);
+            var novoCliente = service.Criar(request, idEmpresa);
 
-                return Results.Created($"/clientes/{novoCliente.Id}", novoCliente);
-            }
-            catch (Exception ex)
-            {
-                return Results.BadRequest(new { erro = ex.Message });
-            }
+            return Results.Created($"/clientes/{novoCliente.Id}", novoCliente);
         }).RequireAuthorization();
 
         app.MapPut("/clientes/{id}", (
@@ -53,31 +46,16 @@ public static class ClienteEndpoints
             ClienteService service
         ) =>
         {
-            try
-            {
-                var idEmpresa = int.Parse(user.FindFirst("id_empresa")!.Value);
-                request.IdEmpresa = idEmpresa;
-                var cliente = service.Atualizar(id, request, idEmpresa);
-                return Results.Ok(cliente);
-            }
-            catch (Exception ex)
-            {
-                return Results.BadRequest(new { erro = ex.Message });
-            }
+            var idEmpresa = int.Parse(user.FindFirst("id_empresa")!.Value);
+            var cliente = service.Atualizar(id, request, idEmpresa);
+            return Results.Ok(cliente);
         }).RequireAuthorization();
 
         app.MapPatch("/clientes/{id}/status", (ClaimsPrincipal user, int id, bool ativo, ClienteService service) =>
         {
-            try
-            {
-                var idEmpresa = int.Parse(user.FindFirst("id_empresa")!.Value);
-                var cliente = service.AlterarStatus(id, ativo, idEmpresa);
-                return Results.Ok(cliente);
-            }
-            catch (Exception ex)
-            {
-                return Results.BadRequest(ex.Message);
-            }
+            var idEmpresa = int.Parse(user.FindFirst("id_empresa")!.Value);
+            var cliente = service.AlterarStatus(id, ativo, idEmpresa);
+            return Results.Ok(cliente);
         }).RequireAuthorization();
     }
 }

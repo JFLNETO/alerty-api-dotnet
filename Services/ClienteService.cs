@@ -35,19 +35,19 @@ public class ClienteService
         return _db.Clientes.FirstOrDefault(c => c.Id == id && c.IdEmpresa == idEmpresa);
     }
 
- public Cliente Criar(CriarClienteRequest request)
+ public Cliente Criar(CriarClienteRequest request, int idEmpresa)
 {
     if (string.IsNullOrWhiteSpace(request.Nome))
-        throw new Exception("Nome é obrigatório.");
+        throw new AppException("Nome é obrigatório.");
 
     if (string.IsNullOrWhiteSpace(request.Telefone))
-        throw new Exception("Telefone é obrigatório.");
+        throw new AppException("Telefone é obrigatório.");
 
     if (request.DataVencimento == default)
-        throw new Exception("Data de vencimento é obrigatória.");
+        throw new AppException("Data de vencimento é obrigatória.");
 
     if (request.IdServicos is null || request.IdServicos.Length == 0)
-        throw new Exception("Informe pelo menos um serviço/modalidade.");
+        throw new AppException("Informe pelo menos um serviço/modalidade.");
 
     var cliente = new Cliente
     {
@@ -55,7 +55,7 @@ public class ClienteService
         Telefone = request.Telefone,
         DataVencimento = request.DataVencimento,
         IdServicos = request.IdServicos,
-        IdEmpresa = request.IdEmpresa,
+        IdEmpresa = idEmpresa,
         UrlFoto = request.UrlFoto,
         Ativo = true,
         Selos = Array.Empty<int>()
@@ -75,7 +75,7 @@ public class ClienteService
         var cliente = _db.Clientes.FirstOrDefault(c => c.Id == id && c.IdEmpresa == idEmpresa);
 
         if (cliente is null)
-            throw new Exception("Cliente não encontrado.");
+            throw new AppException("Cliente não encontrado.");
 
         if (!string.IsNullOrWhiteSpace(request.Nome))
             cliente.Nome = request.Nome;
@@ -88,9 +88,6 @@ public class ClienteService
 
         if (!string.IsNullOrWhiteSpace(request.UrlFoto))
             cliente.UrlFoto = request.UrlFoto;
-
-        if (request.IdEmpresa > 0)
-            cliente.IdEmpresa = request.IdEmpresa;
 
         if (request.IdServicos is not null)
             cliente.IdServicos = request.IdServicos;
@@ -108,7 +105,7 @@ public class ClienteService
         var cliente = _db.Clientes.FirstOrDefault(c => c.Id == id && c.IdEmpresa == idEmpresa);
 
         if (cliente is null)
-            throw new Exception("Cliente não encontrado.");
+            throw new AppException("Cliente não encontrado.");
 
         cliente.Ativo = ativo;
 

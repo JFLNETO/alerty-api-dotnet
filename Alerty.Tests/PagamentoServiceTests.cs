@@ -224,7 +224,7 @@ public class PagamentoServiceTests
         var service = new PagamentoService(db);
 
         // Act & Assert
-        var ex = Assert.Throws<Exception>(() =>
+        var ex = Assert.Throws<AppException>(() =>
             service.ConfirmarPagamento(new ConfirmarPagamentoRequest
             {
                 ClienteId = 999, // não existe

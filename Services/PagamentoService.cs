@@ -12,7 +12,7 @@ public class PagamentoService
         var cliente = _db.Clientes.FirstOrDefault(c => c.Id == request.ClienteId && c.IdEmpresa == idEmpresa);
 
         if (cliente is null)
-            throw new Exception("Cliente não encontrado.");
+            throw new AppException("Cliente não encontrado.");
 
         var vencimentoAnterior = cliente.DataVencimento;
 

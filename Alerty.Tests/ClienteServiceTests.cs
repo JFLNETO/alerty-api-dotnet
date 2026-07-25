@@ -17,11 +17,10 @@ public class ClienteServiceTests
             Telefone = "79999990000",
             DataVencimento = new DateOnly(2025, 12, 31),
             IdServicos = new[] { 1 },
-            IdEmpresa = 13
         };
 
         // Act
-        var resultado = service.Criar(request);
+        var resultado = service.Criar(request, 13);
 
         // Assert
         Assert.NotNull(resultado);
@@ -43,11 +42,10 @@ public class ClienteServiceTests
             Telefone = "79988887777",
             DataVencimento = new DateOnly(2025, 11, 15),
             IdServicos = new[] { 2 },
-            IdEmpresa = 13
         };
 
         // Act
-        var resultado = service.Criar(request);
+        var resultado = service.Criar(request, 13);
 
         // Assert
         // Formato esperado: {idEmpresa}_55{telefone}@s.whatsapp.net
@@ -67,11 +65,10 @@ public class ClienteServiceTests
             Telefone = "79911112222",
             DataVencimento = new DateOnly(2025, 10, 10),
             IdServicos = new[] { 1, 2 },
-            IdEmpresa = 13
         };
 
         // Act
-        var resultado = service.Criar(request);
+        var resultado = service.Criar(request, 13);
 
         // Assert
         Assert.NotNull(resultado.Selos);
@@ -91,11 +88,10 @@ public class ClienteServiceTests
             Telefone = "79999990000",
             DataVencimento = new DateOnly(2025, 12, 31),
             IdServicos = new[] { 1 },
-            IdEmpresa = 13
         };
 
         // Act & Assert
-        var ex = Assert.Throws<Exception>(() => service.Criar(request));
+        var ex = Assert.Throws<AppException>(() => service.Criar(request, 13));
         Assert.Equal("Nome é obrigatório.", ex.Message);
     }
 
@@ -112,11 +108,10 @@ public class ClienteServiceTests
             Telefone = "",
             DataVencimento = new DateOnly(2025, 12, 31),
             IdServicos = new[] { 1 },
-            IdEmpresa = 13
         };
 
         // Act & Assert
-        var ex = Assert.Throws<Exception>(() => service.Criar(request));
+        var ex = Assert.Throws<AppException>(() => service.Criar(request, 13));
         Assert.Equal("Telefone é obrigatório.", ex.Message);
     }
 
@@ -133,11 +128,10 @@ public class ClienteServiceTests
             Telefone = "79999990000",
             DataVencimento = default, // DateOnly vazia
             IdServicos = new[] { 1 },
-            IdEmpresa = 13
         };
 
         // Act & Assert
-        var ex = Assert.Throws<Exception>(() => service.Criar(request));
+        var ex = Assert.Throws<AppException>(() => service.Criar(request, 13));
         Assert.Equal("Data de vencimento é obrigatória.", ex.Message);
     }
 
@@ -154,11 +148,10 @@ public class ClienteServiceTests
             Telefone = "79999990000",
             DataVencimento = new DateOnly(2025, 12, 31),
             IdServicos = Array.Empty<int>(), // sem serviços
-            IdEmpresa = 13
         };
 
         // Act & Assert
-        var ex = Assert.Throws<Exception>(() => service.Criar(request));
+        var ex = Assert.Throws<AppException>(() => service.Criar(request, 13));
         Assert.Equal("Informe pelo menos um serviço/modalidade.", ex.Message);
     }
 
@@ -380,7 +373,6 @@ public class ClienteServiceTests
             Telefone = "79911111111",
             DataVencimento = new DateOnly(2025, 12, 31),
             IdServicos = new[] { 3 },
-            IdEmpresa = 13
         };
 
         // Act
@@ -414,8 +406,7 @@ public class ClienteServiceTests
         var resultado = service.Atualizar(1, new AtualizarClienteRequest
         {
             Telefone = "79988889999",
-            DataVencimento = new DateOnly(2025, 6, 1),
-            IdEmpresa = 13
+            DataVencimento = new DateOnly(2025, 6, 1)
         }, 13);
 
         // Assert
@@ -430,11 +421,10 @@ public class ClienteServiceTests
         var service = new ClienteService(db);
 
         // Act & Assert
-        var ex = Assert.Throws<Exception>(() =>
+        var ex = Assert.Throws<AppException>(() =>
             service.Atualizar(999, new AtualizarClienteRequest
             {
                 Nome = "Qualquer",
-                IdEmpresa = 13,
                 DataVencimento = new DateOnly(2025, 1, 1)
             }, 13));
 
@@ -497,7 +487,7 @@ public class ClienteServiceTests
         var service = new ClienteService(db);
 
         // Act & Assert
-        var ex = Assert.Throws<Exception>(() => service.AlterarStatus(999, false, 13));
+        var ex = Assert.Throws<AppException>(() => service.AlterarStatus(999, false, 13));
         Assert.Equal("Cliente não encontrado.", ex.Message);
     }
 }
