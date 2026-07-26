@@ -8,6 +8,8 @@ public class AppDbContext : DbContext
     public DbSet<RefreshToken> RefreshTokens { get; set; }
     public DbSet<ConfigEmpresa> ConfigEmpresas { get; set; }
     public DbSet<Servico> Servicos { get; set; }
+    public DbSet<RegraAlerta> RegrasAlerta { get; set; }
+    public DbSet<HistoricoNotificacao> HistoricoNotificacoes { get; set; }
 
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
@@ -79,6 +81,8 @@ public class AppDbContext : DbContext
             entity.Property(e => e.NomeDono).HasColumnName("nome_dono");
             entity.Property(e => e.WhatsappDono).HasColumnName("whatsapp_dono");
             entity.Property(e => e.LimiteNotificacoes).HasColumnName("limite_notificacoes");
+            entity.Property(e => e.Plano).HasColumnName("plano");
+            entity.Property(e => e.WahaSession).HasColumnName("waha_session");
             entity.Property(e => e.IdEmpresa).HasColumnName("id_empresa");
             entity.Property(e => e.Selos).HasColumnName("selos");
             entity.Property(e => e.LinkLogo).HasColumnName("link_logo");
@@ -99,6 +103,33 @@ public class AppDbContext : DbContext
             entity.Property(s => s.RecorrenciaTipo).HasColumnName("recorrencia_tipo");
             entity.Property(s => s.CreatedDate).HasColumnName("created_date");
             entity.Property(s => s.ModifiedDate).HasColumnName("modified_date");
+        });
+
+        modelBuilder.Entity<RegraAlerta>(entity =>
+        {
+            entity.ToTable("regras_alerta", "alerty");
+            entity.HasKey(r => r.Id);
+            entity.Property(r => r.Id).HasColumnName("id");
+            entity.Property(r => r.IdEmpresa).HasColumnName("id_empresa");
+            entity.Property(r => r.Tipo).HasColumnName("tipo");
+            entity.Property(r => r.DiasOffset).HasColumnName("dias_offset");
+            entity.Property(r => r.Mensagem).HasColumnName("mensagem");
+            entity.Property(r => r.Ativo).HasColumnName("ativo");
+            entity.Property(r => r.CreatedDate).HasColumnName("created_date");
+        });
+
+        modelBuilder.Entity<HistoricoNotificacao>(entity =>
+        {
+            entity.ToTable("historico_notificacoes", "alerty");
+            entity.HasKey(h => h.Id);
+            entity.Property(h => h.Id).HasColumnName("id");
+            entity.Property(h => h.IdEmpresa).HasColumnName("id_empresa");
+            entity.Property(h => h.IdCliente).HasColumnName("id_cliente");
+            entity.Property(h => h.IdRegraAlerta).HasColumnName("id_regra_alerta");
+            entity.Property(h => h.DataVencimentoReferencia).HasColumnName("data_vencimento_referencia");
+            entity.Property(h => h.DataEnvio).HasColumnName("data_envio");
+            entity.Property(h => h.Sucesso).HasColumnName("sucesso");
+            entity.Property(h => h.ErroMensagem).HasColumnName("erro_mensagem");
         });
     }
 }

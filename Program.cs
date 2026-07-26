@@ -20,6 +20,10 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<PagamentoService>();
 builder.Services.AddScoped<ClienteService>();
 builder.Services.AddScoped<S3UploadService>();
+builder.Services.AddScoped<RegraAlertaService>();
+builder.Services.AddScoped<ConfigEmpresaService>();
+builder.Services.AddHttpClient<WhatsAppService>();
+builder.Services.AddHostedService<AlertaBackgroundService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -94,5 +98,7 @@ app.MapPagamentoEndpoints();
 app.MapRelatorioEndpoints();
 app.MapServicoEndpoints();
 app.MapUploadEndpoints();
+app.MapRegraAlertaEndpoints();
+app.MapEmpresaEndpoints();
 
 app.Run();
