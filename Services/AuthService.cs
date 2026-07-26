@@ -97,9 +97,33 @@ public class AuthService
         _db.Usuarios.Add(usuario);
         _db.SaveChanges();
 
+        // -------------------------------------------------------
+        // REGRA DE ALERTA PADRÃO
+        // Empresa já nasce com 1 alerta ativo (usa a cota inteira do plano Básico),
+        // pra funcionar sem precisar configurar nada. Pode editar/excluir em /alertas.
+        // -------------------------------------------------------
+
+        _db.RegrasAlerta.Add(new RegraAlerta
+        {
+            IdEmpresa = empresa.Id,
+            Tipo = TipoAlerta.NoDia,
+            DiasOffset = 0,
+            Mensagem = "Olá {nome}, sua mensalidade vence hoje! Entre em contato para regularizar.",
+            Ativo = true,
+            CreatedDate = DateTime.UtcNow
+        });
+
+        _db.SaveChanges();
+
+        // Cadastro já loga automaticamente — o dono não precisa entrar duas vezes.
+        var (accessToken, refreshToken) = EmitirTokens(usuario, manterConectado: true);
+
         return new
         {
             mensagem = "Cadastro realizado com sucesso.",
+            accessToken,
+            refreshToken,
+            expiresIn = 8 * 3600,
             idUsuario = usuario.Id,
             idEmpresa = empresa.Id,
             nomeEmpresa = empresa.Nome
@@ -114,6 +138,20 @@ public class AuthService
         if (!BCrypt.Net.BCrypt.Verify(senha, usuario.SenhaHash))
             throw new AppException("Credenciais inválidas.");
 
+        var (accessToken, refreshToken) = EmitirTokens(usuario, manterConectado);
+
+        return new
+        {
+            accessToken,
+            refreshToken,
+            expiresIn = 8 * 3600, // 8 horas em segundos (útil para o frontend)
+            idEmpresa = usuario.IdEmpresa
+        };
+    }
+
+    /// <summary>Emite e persiste o par access/refresh token — usado tanto no login quanto no cadastro (auto-login).</summary>
+    private (string AccessToken, string RefreshToken) EmitirTokens(Usuario usuario, bool manterConectado)
+    {
         var accessToken = GerarAccessToken(usuario);
         var refreshToken = GerarRefreshTokenString();
 
@@ -133,13 +171,7 @@ public class AuthService
 
         _db.SaveChanges();
 
-        return new
-        {
-            accessToken,
-            refreshToken,
-            expiresIn = 8 * 3600, // 8 horas em segundos (útil para o frontend)
-            idEmpresa = usuario.IdEmpresa
-        };
+        return (accessToken, refreshToken);
     }
 
     public object Refresh(string refreshToken)
