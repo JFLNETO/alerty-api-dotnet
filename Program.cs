@@ -22,6 +22,7 @@ builder.Services.AddScoped<ClienteService>();
 builder.Services.AddScoped<S3UploadService>();
 builder.Services.AddScoped<RegraAlertaService>();
 builder.Services.AddScoped<ConfigEmpresaService>();
+builder.Services.AddScoped<ServicoService>();
 builder.Services.AddHttpClient<WhatsAppService>();
 builder.Services.AddHostedService<AlertaBackgroundService>();
 
