@@ -75,6 +75,11 @@ public class AuthService
         // Após o SaveChanges, o EF Core popula empresa.Id com o SERIAL gerado.
         // Usamos esse Id como IdEmpresa (coluna id_empresa da mesma tabela).
         empresa.IdEmpresa = empresa.Id;
+
+        // Nome da sessão do WAHA gerado automaticamente — o dono não precisa inventar um nome,
+        // só escanear o QR code depois na tela de conexão do WhatsApp.
+        empresa.WahaSession = $"empresa_{empresa.Id}";
+
         _db.SaveChanges();
 
         // -------------------------------------------------------

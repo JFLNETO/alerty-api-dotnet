@@ -1,4 +1,29 @@
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+
+public class WahaSessionStatus
+{
+    public string? Name { get; set; }
+    public string? Status { get; set; }
+    public WahaSessionMe? Me { get; set; }
+}
+
+public class WahaSessionMe
+{
+    public string? Id { get; set; }
+    public string? PushName { get; set; }
+}
+
+public class WahaQrCode
+{
+    public string? Mimetype { get; set; }
+    public string? Data { get; set; }
+}
+
+public class WahaPairingCode
+{
+    public string? Code { get; set; }
+}
 
 public class WhatsAppService
 {
@@ -30,17 +55,11 @@ public class WhatsAppService
         }
 
         var chatId = $"55{telefone}@s.whatsapp.net";
-        var apiKey = _config["Waha:ApiKey"];
 
         try
         {
-            using var request = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl.TrimEnd('/')}/api/sendText")
-            {
-                Content = JsonContent.Create(new { session, chatId, text = mensagem })
-            };
-
-            if (!string.IsNullOrWhiteSpace(apiKey))
-                request.Headers.Add("X-Api-Key", apiKey);
+            using var request = ConstruirRequest(HttpMethod.Post, $"{baseUrl.TrimEnd('/')}/api/sendText");
+            request.Content = JsonContent.Create(new { session, chatId, text = mensagem });
 
             var resposta = await _http.SendAsync(request);
 
@@ -58,5 +77,90 @@ public class WhatsAppService
             _logger.LogError(ex, "Falha ao enviar mensagem via WAHA para {ChatId}", chatId);
             return (false, ex.Message);
         }
+    }
+
+    /// <summary>Cria (e inicia automaticamente) a sessão no WAHA — WAHA por padrão já começa o processo de autenticação.</summary>
+    public async Task<WahaSessionStatus> IniciarSessaoAsync(string session)
+    {
+        var baseUrl = ExigirBaseUrl();
+
+        using var request = ConstruirRequest(HttpMethod.Post, $"{baseUrl}/api/sessions");
+        request.Content = JsonContent.Create(new { name = session });
+
+        var resposta = await _http.SendAsync(request);
+        await GarantirSucessoAsync(resposta, "iniciar a sessão");
+
+        return await resposta.Content.ReadFromJsonAsync<WahaSessionStatus>()
+            ?? throw new AppException("WAHA retornou resposta vazia ao iniciar a sessão.");
+    }
+
+    public async Task<WahaSessionStatus> ObterStatusAsync(string session)
+    {
+        var baseUrl = ExigirBaseUrl();
+
+        using var request = ConstruirRequest(HttpMethod.Get, $"{baseUrl}/api/sessions/{session}");
+        var resposta = await _http.SendAsync(request);
+        await GarantirSucessoAsync(resposta, "consultar o status da sessão");
+
+        return await resposta.Content.ReadFromJsonAsync<WahaSessionStatus>()
+            ?? throw new AppException("WAHA retornou resposta vazia ao consultar o status.");
+    }
+
+    /// <summary>QR code em base64, pronto pra virar um data URI no <img src>.</summary>
+    public async Task<WahaQrCode> ObterQrCodeAsync(string session)
+    {
+        var baseUrl = ExigirBaseUrl();
+
+        using var request = ConstruirRequest(HttpMethod.Get, $"{baseUrl}/api/{session}/auth/qr");
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+        var resposta = await _http.SendAsync(request);
+        await GarantirSucessoAsync(resposta, "gerar o QR code");
+
+        return await resposta.Content.ReadFromJsonAsync<WahaQrCode>()
+            ?? throw new AppException("WAHA retornou resposta vazia ao gerar o QR code.");
+    }
+
+    public async Task<string> SolicitarPairingCodeAsync(string session, string telefone)
+    {
+        var baseUrl = ExigirBaseUrl();
+
+        using var request = ConstruirRequest(HttpMethod.Post, $"{baseUrl}/api/{session}/auth/request-code");
+        request.Content = JsonContent.Create(new { phoneNumber = telefone });
+
+        var resposta = await _http.SendAsync(request);
+        await GarantirSucessoAsync(resposta, "solicitar o pairing code");
+
+        var corpo = await resposta.Content.ReadFromJsonAsync<WahaPairingCode>();
+        return corpo?.Code ?? throw new AppException("WAHA retornou resposta vazia ao gerar o pairing code.");
+    }
+
+    private string ExigirBaseUrl()
+    {
+        var baseUrl = _config["Waha:BaseUrl"];
+        if (string.IsNullOrWhiteSpace(baseUrl))
+            throw new AppException("WAHA não configurado (Waha:BaseUrl vazio).");
+
+        return baseUrl.TrimEnd('/');
+    }
+
+    private HttpRequestMessage ConstruirRequest(HttpMethod method, string url)
+    {
+        var request = new HttpRequestMessage(method, url);
+
+        var apiKey = _config["Waha:ApiKey"];
+        if (!string.IsNullOrWhiteSpace(apiKey))
+            request.Headers.Add("X-Api-Key", apiKey);
+
+        return request;
+    }
+
+    private static async Task GarantirSucessoAsync(HttpResponseMessage resposta, string acao)
+    {
+        if (resposta.IsSuccessStatusCode)
+            return;
+
+        var corpo = await resposta.Content.ReadAsStringAsync();
+        throw new AppException($"Falha ao {acao} no WAHA ({(int)resposta.StatusCode}): {corpo}");
     }
 }
