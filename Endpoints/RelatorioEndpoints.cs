@@ -27,13 +27,37 @@ public static class RelatorioEndpoints
                 .OrderByDescending(p => p.DataPagamento)
                 .ToList();
 
+            var idsClientes = pagamentos
+                .Select(p => int.TryParse(p.ClienteId, out var id) ? id : (int?)null)
+                .Where(id => id.HasValue)
+                .Select(id => id!.Value)
+                .Distinct()
+                .ToList();
+
+            var nomesPorId = db.Clientes
+                .Where(c => c.IdEmpresa == idEmpresa && idsClientes.Contains(c.Id))
+                .ToDictionary(c => c.Id, c => c.Nome);
+
+            var pagamentosComNome = pagamentos.Select(p => new
+            {
+                p.Id,
+                p.ClienteId,
+                clienteNome = int.TryParse(p.ClienteId, out var id) && nomesPorId.TryGetValue(id, out var nome)
+                    ? nome
+                    : p.ClienteId,
+                p.IdEmpresa,
+                p.Valor,
+                p.DataPagamento,
+                p.DataVencimentoAnterior
+            });
+
             var totalRecebido = pagamentos.Sum(p => p.Valor);
 
             return Results.Ok(new
             {
                 totalRecebido,
                 quantidadePagamentos = pagamentos.Count,
-                pagamentos
+                pagamentos = pagamentosComNome
             });
         }).RequireAuthorization();
     }
