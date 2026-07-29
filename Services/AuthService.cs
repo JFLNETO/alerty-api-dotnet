@@ -126,7 +126,8 @@ public class AuthService
             expiresIn = 8 * 3600,
             idUsuario = usuario.Id,
             idEmpresa = empresa.Id,
-            nomeEmpresa = empresa.Nome
+            nomeEmpresa = empresa.Nome,
+            nomeDono = empresa.NomeDono
         };
     }
 
@@ -140,12 +141,18 @@ public class AuthService
 
         var (accessToken, refreshToken) = EmitirTokens(usuario, manterConectado);
 
+        var nomeDono = _db.ConfigEmpresas
+            .Where(e => e.Id == usuario.IdEmpresa)
+            .Select(e => e.NomeDono)
+            .FirstOrDefault();
+
         return new
         {
             accessToken,
             refreshToken,
             expiresIn = 8 * 3600, // 8 horas em segundos (útil para o frontend)
-            idEmpresa = usuario.IdEmpresa
+            idEmpresa = usuario.IdEmpresa,
+            nomeDono
         };
     }
 

@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 
@@ -88,6 +89,15 @@ public class WhatsAppService
         request.Content = JsonContent.Create(new { name = session });
 
         var resposta = await _http.SendAsync(request);
+
+        // A sessão já existe (ex: tentativa anterior de conexão) — o WAHA não deixa criar de novo,
+        // só reiniciar. /start é idempotente: só efetivamente inicia se não estiver rodando.
+        if (resposta.StatusCode == HttpStatusCode.UnprocessableEntity)
+        {
+            using var startRequest = ConstruirRequest(HttpMethod.Post, $"{baseUrl}/api/sessions/{session}/start");
+            resposta = await _http.SendAsync(startRequest);
+        }
+
         await GarantirSucessoAsync(resposta, "iniciar a sessão");
 
         return await resposta.Content.ReadFromJsonAsync<WahaSessionStatus>()
