@@ -4,5 +4,6 @@ public class Usuario
     public string Email { get; set; } = null!;
     public string SenhaHash { get; set; } = null!;
     public int IdEmpresa { get; set; }
+    public bool IsAdmin { get; set; }
     public DateTime CreatedDate { get; set; }
 }

@@ -1,5 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-
 public class AlertaBackgroundService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
@@ -31,7 +29,9 @@ public class AlertaBackgroundService : BackgroundService
 
             try
             {
-                await ExecutarVarreduraAsync(stoppingToken);
+                using var scope = _scopeFactory.CreateScope();
+                var job = scope.ServiceProvider.GetRequiredService<AlertaJobService>();
+                await job.ExecutarAsync(stoppingToken);
             }
             catch (Exception ex)
             {
@@ -39,97 +39,6 @@ public class AlertaBackgroundService : BackgroundService
             }
         }
     }
-
-    private async Task ExecutarVarreduraAsync(CancellationToken ct)
-    {
-        using var scope = _scopeFactory.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        var whatsApp = scope.ServiceProvider.GetRequiredService<WhatsAppService>();
-
-        var hoje = DateOnly.FromDateTime(ObterHorarioAtual());
-        var empresas = await db.ConfigEmpresas.ToListAsync(ct);
-
-        foreach (var empresa in empresas)
-        {
-            if (empresa.IdEmpresa is not int idEmpresa)
-                continue;
-
-            var regras = await db.RegrasAlerta
-                .Where(r => r.IdEmpresa == idEmpresa && r.Ativo)
-                .ToListAsync(ct);
-
-            if (regras.Count == 0)
-                continue;
-
-            if (string.IsNullOrWhiteSpace(empresa.WahaSession))
-            {
-                _logger.LogWarning("Empresa {IdEmpresa} tem regras ativas mas nenhuma sessão WAHA configurada — pulando.", idEmpresa);
-                continue;
-            }
-
-            var clientes = await db.Clientes
-                .Where(c => c.IdEmpresa == idEmpresa && c.Ativo)
-                .ToListAsync(ct);
-
-            var linhasRelatorio = new List<string>();
-
-            foreach (var regra in regras)
-            {
-                var dataAlvo = regra.Tipo switch
-                {
-                    TipoAlerta.AntesVencimento => hoje.AddDays(regra.DiasOffset),
-                    TipoAlerta.NoDia => hoje,
-                    TipoAlerta.AposVencimento => hoje.AddDays(-regra.DiasOffset),
-                    _ => hoje
-                };
-
-                foreach (var cliente in clientes.Where(c => c.DataVencimento == dataAlvo))
-                {
-                    var jaEnviado = await db.HistoricoNotificacoes.AnyAsync(h =>
-                        h.IdCliente == cliente.Id &&
-                        h.IdRegraAlerta == regra.Id &&
-                        h.DataVencimentoReferencia == cliente.DataVencimento &&
-                        h.Sucesso, ct);
-
-                    if (jaEnviado)
-                        continue;
-
-                    var mensagem = regra.Mensagem.Replace("{nome}", cliente.Nome ?? "");
-                    var (sucesso, erro) = await whatsApp.EnviarAsync(cliente.Telefone ?? "", mensagem, empresa.WahaSession);
-
-                    db.HistoricoNotificacoes.Add(new HistoricoNotificacao
-                    {
-                        IdEmpresa = idEmpresa,
-                        IdCliente = cliente.Id,
-                        IdRegraAlerta = regra.Id,
-                        DataVencimentoReferencia = cliente.DataVencimento,
-                        DataEnvio = DateTime.UtcNow,
-                        Sucesso = sucesso,
-                        ErroMensagem = erro
-                    });
-
-                    if (sucesso)
-                        linhasRelatorio.Add(FormatarLinhaRelatorio(cliente.Nome, regra));
-                }
-            }
-
-            await db.SaveChangesAsync(ct);
-
-            if (linhasRelatorio.Count > 0 && !string.IsNullOrWhiteSpace(empresa.WhatsappDono))
-            {
-                var relatorio = string.Join("\n", linhasRelatorio);
-                await whatsApp.EnviarAsync(empresa.WhatsappDono!, relatorio, empresa.WahaSession);
-            }
-        }
-    }
-
-    private static string FormatarLinhaRelatorio(string? nome, RegraAlerta regra) => regra.Tipo switch
-    {
-        TipoAlerta.AntesVencimento => $"{nome} vence em {regra.DiasOffset} dia(s)",
-        TipoAlerta.NoDia => $"{nome} vence hoje",
-        TipoAlerta.AposVencimento => $"{nome} vencido há {regra.DiasOffset} dia(s)",
-        _ => $"{nome}"
-    };
 
     private TimeZoneInfo ObterTimeZone()
     {

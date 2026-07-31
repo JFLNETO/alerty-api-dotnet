@@ -127,7 +127,8 @@ public class AuthService
             idUsuario = usuario.Id,
             idEmpresa = empresa.Id,
             nomeEmpresa = empresa.Nome,
-            nomeDono = empresa.NomeDono
+            nomeDono = empresa.NomeDono,
+            isAdmin = usuario.IsAdmin
         };
     }
 
@@ -152,7 +153,8 @@ public class AuthService
             refreshToken,
             expiresIn = 8 * 3600, // 8 horas em segundos (útil para o frontend)
             idEmpresa = usuario.IdEmpresa,
-            nomeDono
+            nomeDono,
+            isAdmin = usuario.IsAdmin
         };
     }
 
@@ -216,7 +218,8 @@ public class AuthService
         {
             new Claim(JwtRegisteredClaimNames.Sub, usuario.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Email, usuario.Email),
-            new Claim("id_empresa", usuario.IdEmpresa.ToString())
+            new Claim("id_empresa", usuario.IdEmpresa.ToString()),
+            new Claim("is_admin", usuario.IsAdmin ? "true" : "false")
         };
 
         var tokenDescriptor = new JwtSecurityToken(

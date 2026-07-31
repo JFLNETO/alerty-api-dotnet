@@ -24,6 +24,7 @@ builder.Services.AddScoped<RegraAlertaService>();
 builder.Services.AddScoped<ConfigEmpresaService>();
 builder.Services.AddScoped<ServicoService>();
 builder.Services.AddHttpClient<WhatsAppService>();
+builder.Services.AddScoped<AlertaJobService>();
 builder.Services.AddHostedService<AlertaBackgroundService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -42,7 +43,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("Admin", policy =>
+        policy.RequireClaim("is_admin", "true"));
+});
 
 builder.Services.AddCors(options =>
 {
@@ -101,5 +106,6 @@ app.MapServicoEndpoints();
 app.MapUploadEndpoints();
 app.MapRegraAlertaEndpoints();
 app.MapEmpresaEndpoints();
+app.MapAdminAlertaEndpoints();
 
 app.Run();

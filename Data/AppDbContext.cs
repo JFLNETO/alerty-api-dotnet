@@ -58,6 +58,7 @@ public class AppDbContext : DbContext
             entity.Property(u => u.Email).HasColumnName("email");
             entity.Property(u => u.SenhaHash).HasColumnName("senha_hash");
             entity.Property(u => u.IdEmpresa).HasColumnName("id_empresa");
+            entity.Property(u => u.IsAdmin).HasColumnName("is_admin");
             entity.Property(u => u.CreatedDate).HasColumnName("created_date");
         });
 
