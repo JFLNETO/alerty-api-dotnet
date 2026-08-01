@@ -67,65 +67,85 @@ public class AlertaJobService
         return (sucesso, erro);
     }
 
-    /// <summary>Executa a varredura de verdade: envia as mensagens via WAHA e grava o histórico.</summary>
+    /// <summary>
+    /// Executa a varredura de verdade: envia as mensagens via WAHA e grava o histórico.
+    /// Cada empresa processa sua fila de forma independente (em paralelo com as outras), mas dentro da
+    /// fila de uma mesma empresa os envios são espaçados por um intervalo aleatório de 30–60s — o WAHA
+    /// é uma integração não oficial com o WhatsApp, e uma rajada de mensagens do mesmo número é o tipo
+    /// de padrão que costuma disparar bloqueio.
+    /// </summary>
     public async Task<VarreduraResultadoDto> ExecutarAsync(CancellationToken ct)
     {
         var candidatos = await ObterCandidatosAsync(HojeNoFuso(), ct);
+
+        var tarefasPorEmpresa = candidatos
+            .GroupBy(c => c.Empresa.IdEmpresa!.Value)
+            .Select(grupo => ProcessarFilaEmpresaAsync(grupo.ToList(), ct));
+
+        var resultadosPorEmpresa = await Task.WhenAll(tarefasPorEmpresa);
+
         var detalhes = new List<AlertaPendenteDto>();
-        var relatoriosPorEmpresa = new Dictionary<int, (ConfigEmpresa Empresa, List<string> Linhas)>();
         var enviados = 0;
         var falhas = 0;
 
-        foreach (var (empresa, cliente, regra) in candidatos)
+        foreach (var envio in resultadosPorEmpresa.SelectMany(r => r))
         {
-            var idEmpresa = empresa.IdEmpresa!.Value;
-            var mensagem = regra.Mensagem.Replace("{nome}", cliente.Nome ?? "");
-            var (sucesso, erro) = await _whatsApp.EnviarAsync(cliente.Telefone ?? "", mensagem, empresa.WahaSession);
-
             _db.HistoricoNotificacoes.Add(new HistoricoNotificacao
             {
-                IdEmpresa = idEmpresa,
-                IdCliente = cliente.Id,
-                IdRegraAlerta = regra.Id,
-                DataVencimentoReferencia = cliente.DataVencimento,
+                IdEmpresa = envio.IdEmpresa,
+                IdCliente = envio.Cliente.Id,
+                IdRegraAlerta = envio.Regra.Id,
+                DataVencimentoReferencia = envio.Cliente.DataVencimento,
                 DataEnvio = DateTime.UtcNow,
-                Sucesso = sucesso,
-                ErroMensagem = erro
+                Sucesso = envio.Sucesso,
+                ErroMensagem = envio.Erro
             });
 
-            detalhes.Add(new AlertaPendenteDto(cliente.Id, regra.Id, idEmpresa, cliente.Nome, empresa.Nome, cliente.Telefone, regra.Tipo, regra.DiasOffset, cliente.DataVencimento));
+            detalhes.Add(new AlertaPendenteDto(envio.Cliente.Id, envio.Regra.Id, envio.IdEmpresa, envio.Cliente.Nome, envio.NomeEmpresa, envio.Cliente.Telefone, envio.Regra.Tipo, envio.Regra.DiasOffset, envio.Cliente.DataVencimento));
 
-            if (sucesso)
-            {
-                enviados++;
-
-                if (!relatoriosPorEmpresa.TryGetValue(idEmpresa, out var entrada))
-                {
-                    entrada = (empresa, new List<string>());
-                    relatoriosPorEmpresa[idEmpresa] = entrada;
-                }
-
-                entrada.Linhas.Add(FormatarLinhaRelatorio(cliente.Nome, regra));
-            }
-            else
-            {
-                falhas++;
-            }
+            if (envio.Sucesso) enviados++; else falhas++;
         }
 
         await _db.SaveChangesAsync(ct);
 
-        foreach (var (empresa, linhas) in relatoriosPorEmpresa.Values)
-        {
-            if (linhas.Count > 0 && !string.IsNullOrWhiteSpace(empresa.WhatsappDono))
-            {
-                var relatorio = string.Join("\n", linhas);
-                await _whatsApp.EnviarAsync(empresa.WhatsappDono!, relatorio, empresa.WahaSession);
-            }
-        }
-
         return new VarreduraResultadoDto(enviados, falhas, detalhes);
     }
+
+    private record EnvioRealizado(int IdEmpresa, string? NomeEmpresa, Cliente Cliente, RegraAlerta Regra, bool Sucesso, string? Erro);
+
+    /// <summary>Fila sequencial de UMA empresa: envia, espera um intervalo aleatório, envia o próximo — inclusive antes do relatório do dono. Não grava no banco (isso fica a cargo de quem chama, depois que todas as filas terminarem).</summary>
+    private async Task<List<EnvioRealizado>> ProcessarFilaEmpresaAsync(List<AlertaCandidato> candidatos, CancellationToken ct)
+    {
+        var empresa = candidatos[0].Empresa;
+        var resultados = new List<EnvioRealizado>();
+        var linhasRelatorio = new List<string>();
+
+        for (var i = 0; i < candidatos.Count; i++)
+        {
+            if (i > 0)
+                await Task.Delay(IntervaloAleatorio(), ct);
+
+            var (cliente, regra) = (candidatos[i].Cliente, candidatos[i].Regra);
+            var mensagem = regra.Mensagem.Replace("{nome}", cliente.Nome ?? "");
+            var (sucesso, erro) = await _whatsApp.EnviarAsync(cliente.Telefone ?? "", mensagem, empresa.WahaSession);
+
+            resultados.Add(new EnvioRealizado(empresa.IdEmpresa!.Value, empresa.Nome, cliente, regra, sucesso, erro));
+
+            if (sucesso)
+                linhasRelatorio.Add(FormatarLinhaRelatorio(cliente.Nome, regra));
+        }
+
+        if (linhasRelatorio.Count > 0 && !string.IsNullOrWhiteSpace(empresa.WhatsappDono))
+        {
+            await Task.Delay(IntervaloAleatorio(), ct);
+            var relatorio = string.Join("\n", linhasRelatorio);
+            await _whatsApp.EnviarAsync(empresa.WhatsappDono!, relatorio, empresa.WahaSession);
+        }
+
+        return resultados;
+    }
+
+    private static TimeSpan IntervaloAleatorio() => TimeSpan.FromSeconds(Random.Shared.Next(30, 61));
 
     private record AlertaCandidato(ConfigEmpresa Empresa, Cliente Cliente, RegraAlerta Regra);
 
