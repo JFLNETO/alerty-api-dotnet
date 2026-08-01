@@ -110,6 +110,11 @@ public class WhatsAppService
 
         using var request = ConstruirRequest(HttpMethod.Get, $"{baseUrl}/api/sessions/{session}");
         var resposta = await _http.SendAsync(request);
+
+        // Sessão ainda não foi criada no WAHA (nunca chamou /iniciar) — não é um erro, é o estado inicial.
+        if (resposta.StatusCode == HttpStatusCode.NotFound)
+            return new WahaSessionStatus { Name = session, Status = "NOT_FOUND" };
+
         await GarantirSucessoAsync(resposta, "consultar o status da sessão");
 
         return await resposta.Content.ReadFromJsonAsync<WahaSessionStatus>()
