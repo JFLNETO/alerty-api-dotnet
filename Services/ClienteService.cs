@@ -49,10 +49,14 @@ public class ClienteService
     if (request.IdServicos is null || request.IdServicos.Length == 0)
         throw new AppException("Informe pelo menos um serviço/modalidade.");
 
+    var telefone = TelefoneUtils.ApenasDigitos(request.Telefone);
+    if (string.IsNullOrWhiteSpace(telefone))
+        throw new AppException("Telefone inválido.");
+
     var cliente = new Cliente
     {
         Nome = request.Nome,
-        Telefone = request.Telefone,
+        Telefone = telefone,
         DataVencimento = request.DataVencimento,
         IdServicos = request.IdServicos,
         IdEmpresa = idEmpresa,
@@ -62,7 +66,7 @@ public class ClienteService
     };
 
     cliente.IdCliente =
-        $"{cliente.IdEmpresa}_55{cliente.Telefone}@s.whatsapp.net";
+        $"{cliente.IdEmpresa}_{TelefoneUtils.NormalizarParaWhatsApp(cliente.Telefone!)}@s.whatsapp.net";
 
     _db.Clientes.Add(cliente);
     _db.SaveChanges();
@@ -81,7 +85,7 @@ public class ClienteService
             cliente.Nome = request.Nome;
 
         if (!string.IsNullOrWhiteSpace(request.Telefone))
-            cliente.Telefone = request.Telefone;
+            cliente.Telefone = TelefoneUtils.ApenasDigitos(request.Telefone);
 
         if (request.DataVencimento != default)
             cliente.DataVencimento = request.DataVencimento;
@@ -93,7 +97,7 @@ public class ClienteService
             cliente.IdServicos = request.IdServicos;
 
         cliente.IdCliente =
-            $"{cliente.IdEmpresa}_55{cliente.Telefone}@s.whatsapp.net";
+            $"{cliente.IdEmpresa}_{TelefoneUtils.NormalizarParaWhatsApp(cliente.Telefone!)}@s.whatsapp.net";
 
         _db.SaveChanges();
 

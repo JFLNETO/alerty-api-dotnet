@@ -414,6 +414,79 @@ public class ClienteServiceTests
     }
 
     [Fact]
+    public void Criar_DeveNormalizarTelefoneComDdiEFormatacao_AoGerarIdCliente()
+    {
+        // Arrange
+        var db = DbContextFactory.Criar();
+        var service = new ClienteService(db);
+
+        var request = new CriarClienteRequest
+        {
+            Nome = "Anne Souza",
+            Telefone = "+55 (79) 98495-432",
+            DataVencimento = new DateOnly(2025, 11, 15),
+            IdServicos = new[] { 2 },
+        };
+
+        // Act
+        var resultado = service.Criar(request, 13);
+
+        // Assert
+        // Telefone já vem com DDI 55 embutido (com formatação) — não pode duplicar o "55".
+        Assert.Equal("13_557998495432@s.whatsapp.net", resultado.IdCliente);
+    }
+
+    [Fact]
+    public void Criar_DeveSalvarApenasDigitosNoTelefone_QuandoRequestVemFormatado()
+    {
+        // Arrange
+        var db = DbContextFactory.Criar();
+        var service = new ClienteService(db);
+
+        var request = new CriarClienteRequest
+        {
+            Nome = "Anne Souza",
+            Telefone = "+55 (79) 98495-432",
+            DataVencimento = new DateOnly(2025, 11, 15),
+            IdServicos = new[] { 2 },
+        };
+
+        // Act
+        var resultado = service.Criar(request, 13);
+
+        // Assert
+        Assert.Equal("557998495432", resultado.Telefone);
+    }
+
+    [Fact]
+    public void Atualizar_DeveSalvarApenasDigitosNoTelefone_QuandoRequestVemFormatado()
+    {
+        // Arrange
+        var db = DbContextFactory.Criar();
+        db.Clientes.Add(new Cliente
+        {
+            Id = 1,
+            Nome = "Cliente",
+            Telefone = "79900000000",
+            IdEmpresa = 13,
+            Ativo = true,
+            DataVencimento = new DateOnly(2025, 1, 1)
+        });
+        db.SaveChanges();
+
+        var service = new ClienteService(db);
+
+        // Act
+        var resultado = service.Atualizar(1, new AtualizarClienteRequest
+        {
+            Telefone = "(79) 91234-5678"
+        }, 13);
+
+        // Assert
+        Assert.Equal("79912345678", resultado.Telefone);
+    }
+
+    [Fact]
     public void Atualizar_DeveLancarExcecao_QuandoClienteNaoExiste()
     {
         // Arrange

@@ -55,7 +55,7 @@ public class WhatsAppService
             return (false, "Empresa sem sessão WAHA configurada.");
         }
 
-        var chatId = $"55{telefone}@s.whatsapp.net";
+        var chatId = $"{TelefoneUtils.NormalizarParaWhatsApp(telefone)}@s.whatsapp.net";
 
         try
         {
