@@ -85,6 +85,7 @@ public class AlertaJobService
         var resultadosPorEmpresa = await Task.WhenAll(tarefasPorEmpresa);
 
         var detalhes = new List<AlertaPendenteDto>();
+        var falhasDetalhadas = new List<string>();
         var enviados = 0;
         var falhas = 0;
 
@@ -103,12 +104,51 @@ public class AlertaJobService
 
             detalhes.Add(new AlertaPendenteDto(envio.Cliente.Id, envio.Regra.Id, envio.IdEmpresa, envio.Cliente.Nome, envio.NomeEmpresa, envio.Cliente.Telefone, envio.Regra.Tipo, envio.Regra.DiasOffset, envio.Cliente.DataVencimento));
 
-            if (envio.Sucesso) enviados++; else falhas++;
+            if (envio.Sucesso)
+            {
+                enviados++;
+            }
+            else
+            {
+                falhas++;
+                falhasDetalhadas.Add($"{envio.Cliente.Nome} ({envio.NomeEmpresa}): {TruncarErro(envio.Erro)}");
+            }
         }
 
         await _db.SaveChangesAsync(ct);
 
+        if (falhasDetalhadas.Count > 0)
+            await NotificarSuporteAsync(falhasDetalhadas, ct);
+
         return new VarreduraResultadoDto(enviados, falhas, detalhes);
+    }
+
+    /// <summary>Avisa o suporte (sessão empresa_7, número pessoal do dev) quando o job diário tem falha de envio.</summary>
+    private async Task NotificarSuporteAsync(List<string> falhas, CancellationToken ct)
+    {
+        const string sessaoSuporte = "empresa_7";
+
+        var suporte = await _db.ConfigEmpresas.FirstOrDefaultAsync(e => e.WahaSession == sessaoSuporte, ct);
+
+        if (suporte is null || string.IsNullOrWhiteSpace(suporte.WhatsappDono))
+        {
+            _logger.LogWarning("Sessão de suporte ({SessaoSuporte}) não configurada — não foi possível notificar falhas do job.", sessaoSuporte);
+            return;
+        }
+
+        var mensagem = $"Alerty: {falhas.Count} falha(s) ao enviar alertas hoje.\n" + string.Join("\n", falhas);
+        var (sucesso, erro) = await _whatsApp.EnviarAsync(suporte.WhatsappDono!, mensagem, sessaoSuporte);
+
+        if (!sucesso)
+            _logger.LogWarning("Falha ao notificar suporte sobre erros do job: {Erro}", erro);
+    }
+
+    private static string TruncarErro(string? erro)
+    {
+        if (string.IsNullOrWhiteSpace(erro))
+            return "erro desconhecido";
+
+        return erro.Length > 150 ? erro[..150] + "..." : erro;
     }
 
     private record EnvioRealizado(int IdEmpresa, string? NomeEmpresa, Cliente Cliente, RegraAlerta Regra, bool Sucesso, string? Erro);

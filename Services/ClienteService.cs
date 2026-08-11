@@ -49,7 +49,7 @@ public class ClienteService
     if (request.IdServicos is null || request.IdServicos.Length == 0)
         throw new AppException("Informe pelo menos um serviço/modalidade.");
 
-    var telefone = TelefoneUtils.ApenasDigitos(request.Telefone);
+    var telefone = TelefoneUtils.RemoverDdi(request.Telefone);
     if (string.IsNullOrWhiteSpace(telefone))
         throw new AppException("Telefone inválido.");
 
@@ -85,7 +85,7 @@ public class ClienteService
             cliente.Nome = request.Nome;
 
         if (!string.IsNullOrWhiteSpace(request.Telefone))
-            cliente.Telefone = TelefoneUtils.ApenasDigitos(request.Telefone);
+            cliente.Telefone = TelefoneUtils.RemoverDdi(request.Telefone);
 
         if (request.DataVencimento != default)
             cliente.DataVencimento = request.DataVencimento;

@@ -455,7 +455,30 @@ public class ClienteServiceTests
         var resultado = service.Criar(request, 13);
 
         // Assert
-        Assert.Equal("557998495432", resultado.Telefone);
+        // DDI removido — formato canonico salvo e sempre DDD + numero, sem 55 na frente.
+        Assert.Equal("7998495432", resultado.Telefone);
+    }
+
+    [Fact]
+    public void Criar_DeveRemoverDdi_QuandoTelefoneCopiadoDoWhatsappComMais55()
+    {
+        // Arrange
+        var db = DbContextFactory.Criar();
+        var service = new ClienteService(db);
+
+        var request = new CriarClienteRequest
+        {
+            Nome = "Cliente WhatsApp",
+            Telefone = "+55 79 98815-6894",
+            DataVencimento = new DateOnly(2025, 11, 15),
+            IdServicos = new[] { 2 },
+        };
+
+        // Act
+        var resultado = service.Criar(request, 13);
+
+        // Assert
+        Assert.Equal("79988156894", resultado.Telefone);
     }
 
     [Fact]

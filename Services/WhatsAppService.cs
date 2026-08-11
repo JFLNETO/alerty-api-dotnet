@@ -80,7 +80,18 @@ public class WhatsAppService
             }
 
             if (checagem is not null && !string.IsNullOrWhiteSpace(checagem.ChatId))
-                chatId = checagem.ChatId;
+            {
+                if (ChatIdCorrespondeAoNumero(checagem.ChatId, numero))
+                {
+                    chatId = checagem.ChatId;
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "chatId devolvido pelo WAHA ({ChatIdDevolvido}) não bate com o número consultado ({Numero}) — ignorando e mantendo o chatId montado localmente.",
+                        checagem.ChatId, numero);
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -120,6 +131,24 @@ public class WhatsAppService
             return null;
 
         return await resposta.Content.ReadFromJsonAsync<WahaCheckExistsResponse>();
+    }
+
+    /// <summary>
+    /// Confere se o chatId devolvido pelo check-exists realmente corresponde ao número consultado —
+    /// trava de segurança pra nunca mandar mensagem pro destinatário errado por causa de uma resposta
+    /// inesperada do WAHA. Formato @lid é um identificador opaco do WhatsApp sem relação numérica com
+    /// o telefone (é justamente pra esse caso que o check-exists existe), então nesse formato confiamos
+    /// sem comparar dígitos.
+    /// </summary>
+    private static bool ChatIdCorrespondeAoNumero(string chatIdDevolvido, string numeroEsperado)
+    {
+        if (chatIdDevolvido.EndsWith("@lid", StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        var digitosDevolvidos = TelefoneUtils.ApenasDigitos(chatIdDevolvido);
+        var sufixoEsperado = numeroEsperado.Length >= 8 ? numeroEsperado[^8..] : numeroEsperado;
+
+        return digitosDevolvidos.EndsWith(sufixoEsperado);
     }
 
     /// <summary>Cria (e inicia automaticamente) a sessão no WAHA — WAHA por padrão já começa o processo de autenticação.</summary>

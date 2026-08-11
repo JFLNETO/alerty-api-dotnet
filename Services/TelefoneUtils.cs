@@ -14,4 +14,14 @@ public static class TelefoneUtils
         var digitos = ApenasDigitos(telefone);
         return digitos.Length is 12 or 13 ? digitos : $"55{digitos}";
     }
+
+    /// <summary>
+    /// Formato canônico salvo em Cliente.Telefone: DDD + número, sem DDI. Remove o 55 da frente
+    /// quando o telefone vier com DDI embutido (ex: número copiado do WhatsApp, +55 79 98815-6894).
+    /// </summary>
+    public static string RemoverDdi(string telefone)
+    {
+        var digitos = ApenasDigitos(telefone);
+        return digitos.Length is 12 or 13 && digitos.StartsWith("55") ? digitos[2..] : digitos;
+    }
 }
