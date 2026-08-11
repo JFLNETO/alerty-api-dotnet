@@ -26,6 +26,12 @@ public class WahaPairingCode
     public string? Code { get; set; }
 }
 
+public class WahaCheckExistsResponse
+{
+    public bool NumberExists { get; set; }
+    public string? ChatId { get; set; }
+}
+
 public class WhatsAppService
 {
     private readonly HttpClient _http;
@@ -55,11 +61,35 @@ public class WhatsAppService
             return (false, "Empresa sem sessão WAHA configurada.");
         }
 
-        var chatId = $"{TelefoneUtils.NormalizarParaWhatsApp(telefone)}@s.whatsapp.net";
+        baseUrl = baseUrl.TrimEnd('/');
+        var numero = TelefoneUtils.NormalizarParaWhatsApp(telefone);
+        var chatId = $"{numero}@s.whatsapp.net";
+
+        // Checa antes se o numero existe no WhatsApp: evita o 500 confuso do WAHA ("no LID found")
+        // pra numeros invalidos, e o proprio WAHA recomenda essa chamada pra popular o mapeamento
+        // lid -> telefone antes do envio. Se a checagem falhar, segue pro envio normal mesmo assim —
+        // e so uma tentativa de evitar o erro, nao pode virar um novo ponto de falha.
+        try
+        {
+            var checagem = await VerificarNumeroExisteAsync(baseUrl, session, numero);
+
+            if (checagem is not null && !checagem.NumberExists)
+            {
+                _logger.LogWarning("Número {Numero} não está registrado no WhatsApp — envio cancelado.", numero);
+                return (false, "Número não está registrado no WhatsApp.");
+            }
+
+            if (checagem is not null && !string.IsNullOrWhiteSpace(checagem.ChatId))
+                chatId = checagem.ChatId;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Falha ao checar existência do número {Numero} no WAHA — seguindo com o envio mesmo assim.", numero);
+        }
 
         try
         {
-            using var request = ConstruirRequest(HttpMethod.Post, $"{baseUrl.TrimEnd('/')}/api/sendText");
+            using var request = ConstruirRequest(HttpMethod.Post, $"{baseUrl}/api/sendText");
             request.Content = JsonContent.Create(new { session, chatId, text = mensagem });
 
             var resposta = await _http.SendAsync(request);
@@ -78,6 +108,18 @@ public class WhatsAppService
             _logger.LogError(ex, "Falha ao enviar mensagem via WAHA para {ChatId}", chatId);
             return (false, ex.Message);
         }
+    }
+
+    /// <summary>Checa se o número existe no WhatsApp — GET /api/contacts/check-exists, conforme docs do WAHA.</summary>
+    private async Task<WahaCheckExistsResponse?> VerificarNumeroExisteAsync(string baseUrl, string session, string numero)
+    {
+        using var request = ConstruirRequest(HttpMethod.Get, $"{baseUrl}/api/contacts/check-exists?phone={numero}&session={session}");
+        var resposta = await _http.SendAsync(request);
+
+        if (!resposta.IsSuccessStatusCode)
+            return null;
+
+        return await resposta.Content.ReadFromJsonAsync<WahaCheckExistsResponse>();
     }
 
     /// <summary>Cria (e inicia automaticamente) a sessão no WAHA — WAHA por padrão já começa o processo de autenticação.</summary>
