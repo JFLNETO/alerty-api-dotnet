@@ -9,7 +9,7 @@ public class ClienteServiceTests
     {
         // Arrange
         var db = DbContextFactory.Criar();
-        var service = new ClienteService(db);
+        var service = new ClienteService(db, new ClienteGraduacaoService(db));
 
         var request = new CriarClienteRequest
         {
@@ -34,7 +34,7 @@ public class ClienteServiceTests
     {
         // Arrange
         var db = DbContextFactory.Criar();
-        var service = new ClienteService(db);
+        var service = new ClienteService(db, new ClienteGraduacaoService(db));
 
         var request = new CriarClienteRequest
         {
@@ -57,7 +57,7 @@ public class ClienteServiceTests
     {
         // Arrange
         var db = DbContextFactory.Criar();
-        var service = new ClienteService(db);
+        var service = new ClienteService(db, new ClienteGraduacaoService(db));
 
         var request = new CriarClienteRequest
         {
@@ -80,7 +80,7 @@ public class ClienteServiceTests
     {
         // Arrange
         var db = DbContextFactory.Criar();
-        var service = new ClienteService(db);
+        var service = new ClienteService(db, new ClienteGraduacaoService(db));
 
         var request = new CriarClienteRequest
         {
@@ -100,7 +100,7 @@ public class ClienteServiceTests
     {
         // Arrange
         var db = DbContextFactory.Criar();
-        var service = new ClienteService(db);
+        var service = new ClienteService(db, new ClienteGraduacaoService(db));
 
         var request = new CriarClienteRequest
         {
@@ -120,7 +120,7 @@ public class ClienteServiceTests
     {
         // Arrange
         var db = DbContextFactory.Criar();
-        var service = new ClienteService(db);
+        var service = new ClienteService(db, new ClienteGraduacaoService(db));
 
         var request = new CriarClienteRequest
         {
@@ -140,7 +140,7 @@ public class ClienteServiceTests
     {
         // Arrange
         var db = DbContextFactory.Criar();
-        var service = new ClienteService(db);
+        var service = new ClienteService(db, new ClienteGraduacaoService(db));
 
         var request = new CriarClienteRequest
         {
@@ -170,7 +170,7 @@ public class ClienteServiceTests
         );
         db.SaveChanges();
 
-        var service = new ClienteService(db);
+        var service = new ClienteService(db, new ClienteGraduacaoService(db));
 
         // Act
         var resultado = service.Listar(null, null, null);
@@ -190,7 +190,7 @@ public class ClienteServiceTests
         );
         db.SaveChanges();
 
-        var service = new ClienteService(db);
+        var service = new ClienteService(db, new ClienteGraduacaoService(db));
 
         // Act
         var resultado = service.Listar(idEmpresa: 13, null, null);
@@ -211,7 +211,7 @@ public class ClienteServiceTests
         );
         db.SaveChanges();
 
-        var service = new ClienteService(db);
+        var service = new ClienteService(db, new ClienteGraduacaoService(db));
 
         // Act
         var resultado = service.Listar(null, null, ativo: true);
@@ -232,7 +232,7 @@ public class ClienteServiceTests
         );
         db.SaveChanges();
 
-        var service = new ClienteService(db);
+        var service = new ClienteService(db, new ClienteGraduacaoService(db));
 
         // Act — busca em minúsculo, nome tem maiúscula
         var resultado = service.Listar(null, "fernanda", null);
@@ -254,7 +254,7 @@ public class ClienteServiceTests
         );
         db.SaveChanges();
 
-        var service = new ClienteService(db);
+        var service = new ClienteService(db, new ClienteGraduacaoService(db));
 
         // Act
         var resultado = service.Listar(null, null, null);
@@ -277,7 +277,7 @@ public class ClienteServiceTests
         );
         db.SaveChanges();
 
-        var service = new ClienteService(db);
+        var service = new ClienteService(db, new ClienteGraduacaoService(db));
 
         // Act — filtra empresa 13 E apenas ativos
         var resultado = service.Listar(idEmpresa: 13, null, ativo: true);
@@ -299,7 +299,7 @@ public class ClienteServiceTests
         );
         db.SaveChanges();
 
-        var service = new ClienteService(db);
+        var service = new ClienteService(db, new ClienteGraduacaoService(db));
 
         // Act — busca "carlos" na empresa 13
         var resultado = service.Listar(idEmpresa: 13, "carlos", null);
@@ -321,7 +321,7 @@ public class ClienteServiceTests
         db.Clientes.Add(new Cliente { Id = 1, Nome = "Ana", Telefone = "111", IdEmpresa = 13, Ativo = true, DataVencimento = new DateOnly(2025, 1, 1) });
         db.SaveChanges();
 
-        var service = new ClienteService(db);
+        var service = new ClienteService(db, new ClienteGraduacaoService(db));
 
         // Act
         var resultado = service.BuscarPorId(1, 13);
@@ -336,7 +336,7 @@ public class ClienteServiceTests
     {
         // Arrange
         var db = DbContextFactory.Criar();
-        var service = new ClienteService(db);
+        var service = new ClienteService(db, new ClienteGraduacaoService(db));
 
         // Act
         var resultado = service.BuscarPorId(999, 13);
@@ -365,7 +365,7 @@ public class ClienteServiceTests
         });
         db.SaveChanges();
 
-        var service = new ClienteService(db);
+        var service = new ClienteService(db, new ClienteGraduacaoService(db));
 
         var request = new AtualizarClienteRequest
         {
@@ -400,7 +400,7 @@ public class ClienteServiceTests
         });
         db.SaveChanges();
 
-        var service = new ClienteService(db);
+        var service = new ClienteService(db, new ClienteGraduacaoService(db));
 
         // Act
         var resultado = service.Atualizar(1, new AtualizarClienteRequest
@@ -418,7 +418,7 @@ public class ClienteServiceTests
     {
         // Arrange
         var db = DbContextFactory.Criar();
-        var service = new ClienteService(db);
+        var service = new ClienteService(db, new ClienteGraduacaoService(db));
 
         var request = new CriarClienteRequest
         {
@@ -441,7 +441,7 @@ public class ClienteServiceTests
     {
         // Arrange
         var db = DbContextFactory.Criar();
-        var service = new ClienteService(db);
+        var service = new ClienteService(db, new ClienteGraduacaoService(db));
 
         var request = new CriarClienteRequest
         {
@@ -464,7 +464,7 @@ public class ClienteServiceTests
     {
         // Arrange
         var db = DbContextFactory.Criar();
-        var service = new ClienteService(db);
+        var service = new ClienteService(db, new ClienteGraduacaoService(db));
 
         var request = new CriarClienteRequest
         {
@@ -497,7 +497,7 @@ public class ClienteServiceTests
         });
         db.SaveChanges();
 
-        var service = new ClienteService(db);
+        var service = new ClienteService(db, new ClienteGraduacaoService(db));
 
         // Act
         var resultado = service.Atualizar(1, new AtualizarClienteRequest
@@ -514,7 +514,7 @@ public class ClienteServiceTests
     {
         // Arrange
         var db = DbContextFactory.Criar();
-        var service = new ClienteService(db);
+        var service = new ClienteService(db, new ClienteGraduacaoService(db));
 
         // Act & Assert
         var ex = Assert.Throws<AppException>(() =>
@@ -544,7 +544,7 @@ public class ClienteServiceTests
         });
         db.SaveChanges();
 
-        var service = new ClienteService(db);
+        var service = new ClienteService(db, new ClienteGraduacaoService(db));
 
         // Act
         var resultado = service.AlterarStatus(1, false, 13);
@@ -566,7 +566,7 @@ public class ClienteServiceTests
         });
         db.SaveChanges();
 
-        var service = new ClienteService(db);
+        var service = new ClienteService(db, new ClienteGraduacaoService(db));
 
         // Act
         var resultado = service.AlterarStatus(1, true, 13);
@@ -580,7 +580,7 @@ public class ClienteServiceTests
     {
         // Arrange
         var db = DbContextFactory.Criar();
-        var service = new ClienteService(db);
+        var service = new ClienteService(db, new ClienteGraduacaoService(db));
 
         // Act & Assert
         var ex = Assert.Throws<AppException>(() => service.AlterarStatus(999, false, 13));

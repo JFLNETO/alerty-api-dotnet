@@ -23,6 +23,10 @@ builder.Services.AddScoped<S3UploadService>();
 builder.Services.AddScoped<RegraAlertaService>();
 builder.Services.AddScoped<ConfigEmpresaService>();
 builder.Services.AddScoped<ServicoService>();
+builder.Services.AddScoped<TurmaService>();
+builder.Services.AddScoped<PresencaService>();
+builder.Services.AddScoped<GraduacaoService>();
+builder.Services.AddScoped<ClienteGraduacaoService>();
 builder.Services.AddHttpClient<WhatsAppService>();
 builder.Services.AddScoped<AlertaJobService>();
 builder.Services.AddHostedService<AlertaBackgroundService>();
@@ -56,7 +60,10 @@ builder.Services.AddCors(options =>
         policy
             .WithOrigins(
                 "http://localhost:5173",
-                "https://alerty-frontend.vercel.app"
+                "https://alerty-frontend.vercel.app",
+                "https://checkygo.com.br",
+                "https://www.checkygo.com.br",
+                "https://app.checkygo.com.br"
             )
             .AllowAnyHeader()
             .AllowAnyMethod();
@@ -107,5 +114,9 @@ app.MapUploadEndpoints();
 app.MapRegraAlertaEndpoints();
 app.MapEmpresaEndpoints();
 app.MapAdminAlertaEndpoints();
+app.MapTurmaEndpoints();
+app.MapPresencaEndpoints();
+app.MapGraduacaoEndpoints();
+app.MapClienteGraduacaoEndpoints();
 
 app.Run();

@@ -1,10 +1,12 @@
 public class ClienteService
 {
     private readonly AppDbContext _db;
+    private readonly ClienteGraduacaoService _clienteGraduacaoService;
 
-    public ClienteService(AppDbContext db)
+    public ClienteService(AppDbContext db, ClienteGraduacaoService clienteGraduacaoService)
     {
         _db = db;
+        _clienteGraduacaoService = clienteGraduacaoService;
     }
 
     public List<Cliente> Listar(
@@ -59,6 +61,7 @@ public class ClienteService
         Telefone = telefone,
         DataVencimento = request.DataVencimento,
         IdServicos = request.IdServicos,
+        IdTurmas = request.IdTurmas,
         IdEmpresa = idEmpresa,
         UrlFoto = request.UrlFoto,
         Ativo = true,
@@ -70,6 +73,8 @@ public class ClienteService
 
     _db.Clientes.Add(cliente);
     _db.SaveChanges();
+
+    _clienteGraduacaoService.SincronizarMatriculas(cliente.Id, idEmpresa, cliente.IdServicos);
 
     return cliente;
 }
@@ -96,10 +101,15 @@ public class ClienteService
         if (request.IdServicos is not null)
             cliente.IdServicos = request.IdServicos;
 
+        if (request.IdTurmas is not null)
+            cliente.IdTurmas = request.IdTurmas;
+
         cliente.IdCliente =
             $"{cliente.IdEmpresa}_{TelefoneUtils.NormalizarParaWhatsApp(cliente.Telefone!)}@s.whatsapp.net";
 
         _db.SaveChanges();
+
+        _clienteGraduacaoService.SincronizarMatriculas(cliente.Id, idEmpresa, cliente.IdServicos);
 
         return cliente;
     }

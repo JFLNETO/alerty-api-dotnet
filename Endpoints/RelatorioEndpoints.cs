@@ -60,5 +60,15 @@ public static class RelatorioEndpoints
                 pagamentos = pagamentosComNome
             });
         }).RequireAuthorization();
+
+        app.MapGet("/relatorios/aptos-graduar", (
+            ClaimsPrincipal user,
+            int? idServico,
+            ClienteGraduacaoService service
+        ) =>
+        {
+            var idEmpresa = int.Parse(user.FindFirst("id_empresa")!.Value);
+            return Results.Ok(service.ListarProgressoGraduacao(idServico, idEmpresa));
+        }).RequireAuthorization();
     }
 }

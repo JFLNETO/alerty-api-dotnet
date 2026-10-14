@@ -54,6 +54,10 @@ namespace Alerty.Api.Migrations
                         .HasColumnType("integer[]")
                         .HasColumnName("id_servicos");
 
+                    b.PrimitiveCollection<int[]>("IdTurmas")
+                        .HasColumnType("integer[]")
+                        .HasColumnName("id_turmas");
+
                     b.Property<string>("Nome")
                         .HasColumnType("text")
                         .HasColumnName("nome");
@@ -73,6 +77,43 @@ namespace Alerty.Api.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("clientes", "alerty");
+                });
+
+            modelBuilder.Entity("ClienteGraduacao", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id_unico");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateOnly>("DataUltimaGraduacao")
+                        .HasColumnType("date")
+                        .HasColumnName("data_ultima_graduacao");
+
+                    b.Property<int>("IdCliente")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_cliente");
+
+                    b.Property<int>("IdEmpresa")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_empresa");
+
+                    b.Property<int>("IdGraduacaoAtual")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_graduacao_atual");
+
+                    b.Property<int>("IdServico")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_servico");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IdCliente", "IdServico")
+                        .IsUnique();
+
+                    b.ToTable("cliente_graduacoes", "alerty");
                 });
 
             modelBuilder.Entity("ConfigEmpresa", b =>
@@ -135,6 +176,91 @@ namespace Alerty.Api.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("config_empresa", "alerty");
+                });
+
+            modelBuilder.Entity("Graduacao", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id_unico");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_date");
+
+                    b.Property<int>("IdEmpresa")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_empresa");
+
+                    b.Property<int>("IdServico")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_servico");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("nome");
+
+                    b.Property<int>("Ordem")
+                        .HasColumnType("integer")
+                        .HasColumnName("ordem");
+
+                    b.Property<int>("RequisitoDias")
+                        .HasColumnType("integer")
+                        .HasColumnName("requisito_dias");
+
+                    b.Property<int>("RequisitoPresencas")
+                        .HasColumnType("integer")
+                        .HasColumnName("requisito_presencas");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("graduacoes", "alerty");
+                });
+
+            modelBuilder.Entity("HistoricoGraduacao", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id_unico");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("ConfirmadoPor")
+                        .HasColumnType("integer")
+                        .HasColumnName("confirmado_por");
+
+                    b.Property<DateTime>("Data")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("data");
+
+                    b.Property<int>("IdCliente")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_cliente");
+
+                    b.Property<int>("IdEmpresa")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_empresa");
+
+                    b.Property<int>("IdGraduacaoAnterior")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_graduacao_anterior");
+
+                    b.Property<int>("IdGraduacaoNova")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_graduacao_nova");
+
+                    b.Property<int>("IdServico")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_servico");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("historico_graduacoes", "alerty");
                 });
 
             modelBuilder.Entity("HistoricoNotificacao", b =>
@@ -215,6 +341,51 @@ namespace Alerty.Api.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("historico_cobranca", "alerty");
+                });
+
+            modelBuilder.Entity("Presenca", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id_unico");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateOnly>("Data")
+                        .HasColumnType("date")
+                        .HasColumnName("data");
+
+                    b.Property<DateTime>("DataHoraLancamento")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("data_hora_lancamento");
+
+                    b.Property<int>("IdCliente")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_cliente");
+
+                    b.Property<int>("IdEmpresa")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_empresa");
+
+                    b.Property<int>("IdTurma")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_turma");
+
+                    b.Property<int>("LancadoPor")
+                        .HasColumnType("integer")
+                        .HasColumnName("lancado_por");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IdTurma", "Data", "IdCliente")
+                        .IsUnique();
+
+                    b.ToTable("presencas", "alerty");
                 });
 
             modelBuilder.Entity("RefreshToken", b =>
@@ -327,6 +498,56 @@ namespace Alerty.Api.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("servicos", "alerty");
+                });
+
+            modelBuilder.Entity("Turma", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasColumnName("id_unico");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Ativo")
+                        .HasColumnType("boolean")
+                        .HasColumnName("ativo");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_date");
+
+                    b.Property<int>("DiaSemana")
+                        .HasColumnType("integer")
+                        .HasColumnName("dia_semana");
+
+                    b.Property<TimeOnly>("HoraFim")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("hora_fim");
+
+                    b.Property<TimeOnly>("HoraInicio")
+                        .HasColumnType("time without time zone")
+                        .HasColumnName("hora_inicio");
+
+                    b.Property<int>("IdEmpresa")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_empresa");
+
+                    b.Property<int>("IdServico")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_servico");
+
+                    b.Property<DateTime>("ModifiedDate")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modified_date");
+
+                    b.Property<string>("Nome")
+                        .HasColumnType("text")
+                        .HasColumnName("nome");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("turmas", "alerty");
                 });
 
             modelBuilder.Entity("Usuario", b =>

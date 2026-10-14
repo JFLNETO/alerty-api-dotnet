@@ -8,6 +8,7 @@ public class Cliente
     public DateOnly DataVencimento { get; set; }
     public DateTime? DataUltimoPagamento { get; set; }
     public int[]? IdServicos { get; set; }
+    public int[]? IdTurmas { get; set; }
     public int[]? Selos { get; set; }
     public int IdEmpresa { get; set; }
     public string? UrlFoto { get; set; }

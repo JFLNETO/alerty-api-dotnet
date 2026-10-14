@@ -10,6 +10,11 @@ public class AppDbContext : DbContext
     public DbSet<Servico> Servicos { get; set; }
     public DbSet<RegraAlerta> RegrasAlerta { get; set; }
     public DbSet<HistoricoNotificacao> HistoricoNotificacoes { get; set; }
+    public DbSet<Turma> Turmas { get; set; }
+    public DbSet<Presenca> Presencas { get; set; }
+    public DbSet<Graduacao> Graduacoes { get; set; }
+    public DbSet<ClienteGraduacao> ClienteGraduacoes { get; set; }
+    public DbSet<HistoricoGraduacao> HistoricoGraduacoes { get; set; }
 
     public AppDbContext(DbContextOptions<AppDbContext> options)
         : base(options)
@@ -34,6 +39,7 @@ public class AppDbContext : DbContext
             entity.Property(c => c.IdEmpresa).HasColumnName("id_empresa");
             entity.Property(c => c.IdCliente).HasColumnName("id_cliente");
             entity.Property(c => c.IdServicos).HasColumnName("id_servicos");
+            entity.Property(c => c.IdTurmas).HasColumnName("id_turmas");
             entity.Property(c => c.Selos).HasColumnName("selos");
         });
 
@@ -131,6 +137,80 @@ public class AppDbContext : DbContext
             entity.Property(h => h.DataEnvio).HasColumnName("data_envio");
             entity.Property(h => h.Sucesso).HasColumnName("sucesso");
             entity.Property(h => h.ErroMensagem).HasColumnName("erro_mensagem");
+        });
+
+        modelBuilder.Entity<Turma>(entity =>
+        {
+            entity.ToTable("turmas", "alerty");
+            entity.HasKey(t => t.Id);
+            entity.Property(t => t.Id).HasColumnName("id_unico");
+            entity.Property(t => t.IdEmpresa).HasColumnName("id_empresa");
+            entity.Property(t => t.IdServico).HasColumnName("id_servico");
+            entity.Property(t => t.Nome).HasColumnName("nome");
+            entity.Property(t => t.DiaSemana).HasColumnName("dia_semana");
+            entity.Property(t => t.HoraInicio).HasColumnName("hora_inicio");
+            entity.Property(t => t.HoraFim).HasColumnName("hora_fim");
+            entity.Property(t => t.Ativo).HasColumnName("ativo");
+            entity.Property(t => t.CreatedDate).HasColumnName("created_date");
+            entity.Property(t => t.ModifiedDate).HasColumnName("modified_date");
+        });
+
+        modelBuilder.Entity<Presenca>(entity =>
+        {
+            entity.ToTable("presencas", "alerty");
+            entity.HasKey(p => p.Id);
+            entity.Property(p => p.Id).HasColumnName("id_unico");
+            entity.Property(p => p.IdEmpresa).HasColumnName("id_empresa");
+            entity.Property(p => p.IdCliente).HasColumnName("id_cliente");
+            entity.Property(p => p.IdTurma).HasColumnName("id_turma");
+            entity.Property(p => p.Data).HasColumnName("data");
+            entity.Property(p => p.Status).HasColumnName("status");
+            entity.Property(p => p.LancadoPor).HasColumnName("lancado_por");
+            entity.Property(p => p.DataHoraLancamento).HasColumnName("data_hora_lancamento");
+
+            entity.HasIndex(p => new { p.IdTurma, p.Data, p.IdCliente }).IsUnique();
+        });
+
+        modelBuilder.Entity<Graduacao>(entity =>
+        {
+            entity.ToTable("graduacoes", "alerty");
+            entity.HasKey(g => g.Id);
+            entity.Property(g => g.Id).HasColumnName("id_unico");
+            entity.Property(g => g.IdEmpresa).HasColumnName("id_empresa");
+            entity.Property(g => g.IdServico).HasColumnName("id_servico");
+            entity.Property(g => g.Nome).HasColumnName("nome");
+            entity.Property(g => g.Ordem).HasColumnName("ordem");
+            entity.Property(g => g.RequisitoDias).HasColumnName("requisito_dias");
+            entity.Property(g => g.RequisitoPresencas).HasColumnName("requisito_presencas");
+            entity.Property(g => g.CreatedDate).HasColumnName("created_date");
+        });
+
+        modelBuilder.Entity<ClienteGraduacao>(entity =>
+        {
+            entity.ToTable("cliente_graduacoes", "alerty");
+            entity.HasKey(cg => cg.Id);
+            entity.Property(cg => cg.Id).HasColumnName("id_unico");
+            entity.Property(cg => cg.IdEmpresa).HasColumnName("id_empresa");
+            entity.Property(cg => cg.IdCliente).HasColumnName("id_cliente");
+            entity.Property(cg => cg.IdServico).HasColumnName("id_servico");
+            entity.Property(cg => cg.IdGraduacaoAtual).HasColumnName("id_graduacao_atual");
+            entity.Property(cg => cg.DataUltimaGraduacao).HasColumnName("data_ultima_graduacao");
+
+            entity.HasIndex(cg => new { cg.IdCliente, cg.IdServico }).IsUnique();
+        });
+
+        modelBuilder.Entity<HistoricoGraduacao>(entity =>
+        {
+            entity.ToTable("historico_graduacoes", "alerty");
+            entity.HasKey(h => h.Id);
+            entity.Property(h => h.Id).HasColumnName("id_unico");
+            entity.Property(h => h.IdEmpresa).HasColumnName("id_empresa");
+            entity.Property(h => h.IdCliente).HasColumnName("id_cliente");
+            entity.Property(h => h.IdServico).HasColumnName("id_servico");
+            entity.Property(h => h.IdGraduacaoAnterior).HasColumnName("id_graduacao_anterior");
+            entity.Property(h => h.IdGraduacaoNova).HasColumnName("id_graduacao_nova");
+            entity.Property(h => h.Data).HasColumnName("data");
+            entity.Property(h => h.ConfirmadoPor).HasColumnName("confirmado_por");
         });
     }
 }

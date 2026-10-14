@@ -28,3 +28,6 @@ Thumbs.db
 # Frontend
 alerty-frontend/
 node_modules/
+
+# Pesquisa/notas internas (não versionar)
+docs/pesquisa-concorrentes-checkygo.md
