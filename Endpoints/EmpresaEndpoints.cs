@@ -10,17 +10,6 @@ public static class EmpresaEndpoints
             return Results.Ok(service.Obter(idEmpresa));
         }).RequireAuthorization();
 
-        app.MapPatch("/empresa/waha-sessao", (
-            ClaimsPrincipal user,
-            AtualizarWahaSessaoRequest request,
-            ConfigEmpresaService service
-        ) =>
-        {
-            var idEmpresa = int.Parse(user.FindFirst("id_empresa")!.Value);
-            var empresa = service.AtualizarWahaSessao(idEmpresa, request.Session);
-            return Results.Ok(empresa);
-        }).RequireAuthorization();
-
         app.MapPost("/empresa/whatsapp/iniciar", async (
             ClaimsPrincipal user,
             ConfigEmpresaService empresaService,

@@ -9,6 +9,8 @@
 
   <ItemGroup>
     <Compile Remove="Alerty.Tests\**" />
+    <Content Remove="Alerty.Tests\**" />
+    <None Remove="Alerty.Tests\**" />
   </ItemGroup>
 
   <ItemGroup>
