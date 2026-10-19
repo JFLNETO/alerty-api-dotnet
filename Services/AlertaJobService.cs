@@ -49,7 +49,7 @@ public class AlertaJobService
             ?? throw new AppException("Empresa do cliente não encontrada.");
 
         var mensagem = regra.Mensagem.Replace("{nome}", cliente.Nome ?? "");
-        var (sucesso, erro) = await _whatsApp.EnviarAsync(cliente.Telefone ?? "", mensagem, empresa.WahaSession);
+        var (sucesso, erro, _) = await _whatsApp.EnviarAsync(cliente.Telefone ?? "", mensagem, empresa.WahaSession);
 
         _db.HistoricoNotificacoes.Add(new HistoricoNotificacao
         {
@@ -128,7 +128,17 @@ public class AlertaJobService
     {
         const string sessaoSuporte = "empresa_7";
 
-        var suporte = await _db.ConfigEmpresas.FirstOrDefaultAsync(e => e.WahaSession == sessaoSuporte, ct);
+        // A mensagem de falhas leva nomes de alunos de TODOS os tenants — se mais de uma empresa tiver essa
+        // sessão gravada, não dá pra saber qual é o suporte de verdade, então não envia pra ninguém.
+        var candidatosSuporte = await _db.ConfigEmpresas.Where(e => e.WahaSession == sessaoSuporte).Take(2).ToListAsync(ct);
+
+        if (candidatosSuporte.Count > 1)
+        {
+            _logger.LogError("Mais de uma empresa com a sessão de suporte ({SessaoSuporte}) — notificação de falhas bloqueada.", sessaoSuporte);
+            return;
+        }
+
+        var suporte = candidatosSuporte.FirstOrDefault();
 
         if (suporte is null || string.IsNullOrWhiteSpace(suporte.WhatsappDono))
         {
@@ -137,7 +147,7 @@ public class AlertaJobService
         }
 
         var mensagem = $"Alerty: {falhas.Count} falha(s) ao enviar alertas hoje.\n" + string.Join("\n", falhas);
-        var (sucesso, erro) = await _whatsApp.EnviarAsync(suporte.WhatsappDono!, mensagem, sessaoSuporte);
+        var (sucesso, erro, _) = await _whatsApp.EnviarAsync(suporte.WhatsappDono!, mensagem, sessaoSuporte);
 
         if (!sucesso)
             _logger.LogWarning("Falha ao notificar suporte sobre erros do job: {Erro}", erro);
@@ -153,12 +163,38 @@ public class AlertaJobService
 
     private record EnvioRealizado(int IdEmpresa, string? NomeEmpresa, Cliente Cliente, RegraAlerta Regra, bool Sucesso, string? Erro);
 
+    public record ContatoInvalido(int IdCliente, string? Nome, MotivoFalhaEnvio Motivo);
+
+    /// <summary>
+    /// Texto do aviso ao dono sobre alunos que não dá pra contatar pelo WhatsApp, com um link por aluno
+    /// que abre o cadastro dele no frontend. Sem <paramref name="frontendBaseUrl"/>, sai só com os nomes.
+    /// </summary>
+    public static string MontarAvisoContatosInvalidos(IEnumerable<ContatoInvalido> contatos, string? frontendBaseUrl)
+    {
+        var baseUrl = frontendBaseUrl?.Trim().TrimEnd('/');
+        var unicos = contatos.DistinctBy(c => c.IdCliente).ToList();
+
+        var linhas = unicos.Select(c =>
+        {
+            var motivo = c.Motivo == MotivoFalhaEnvio.NumeroSemWhatsApp ? "número sem WhatsApp" : "telefone inválido";
+            var linha = $"- {c.Nome}: {motivo}";
+            return string.IsNullOrWhiteSpace(baseUrl) ? linha : $"{linha}\n  {baseUrl}/?cliente={c.IdCliente}";
+        });
+
+        return $"Não consegui enviar o aviso de vencimento para {unicos.Count} aluno(s). Confira o telefone no cadastro:\n"
+            + string.Join("\n", linhas);
+    }
+
+    private static bool EhFalhaDeContato(MotivoFalhaEnvio motivo) =>
+        motivo is MotivoFalhaEnvio.TelefoneInvalido or MotivoFalhaEnvio.NumeroSemWhatsApp;
+
     /// <summary>Fila sequencial de UMA empresa: envia, espera um intervalo aleatório, envia o próximo — inclusive antes do relatório do dono. Não grava no banco (isso fica a cargo de quem chama, depois que todas as filas terminarem).</summary>
     private async Task<List<EnvioRealizado>> ProcessarFilaEmpresaAsync(List<AlertaCandidato> candidatos, CancellationToken ct)
     {
         var empresa = candidatos[0].Empresa;
         var resultados = new List<EnvioRealizado>();
         var linhasRelatorio = new List<string>();
+        var contatosInvalidos = new List<(Cliente Cliente, MotivoFalhaEnvio Motivo)>();
 
         for (var i = 0; i < candidatos.Count; i++)
         {
@@ -167,12 +203,20 @@ public class AlertaJobService
 
             var (cliente, regra) = (candidatos[i].Cliente, candidatos[i].Regra);
             var mensagem = regra.Mensagem.Replace("{nome}", cliente.Nome ?? "");
-            var (sucesso, erro) = await _whatsApp.EnviarAsync(cliente.Telefone ?? "", mensagem, empresa.WahaSession);
+            var (sucesso, erro, motivo) = await _whatsApp.EnviarAsync(cliente.Telefone ?? "", mensagem, empresa.WahaSession);
 
             resultados.Add(new EnvioRealizado(empresa.IdEmpresa!.Value, empresa.Nome, cliente, regra, sucesso, erro));
 
             if (sucesso)
+            {
                 linhasRelatorio.Add(FormatarLinhaRelatorio(cliente.Nome, regra));
+                cliente.TelefoneAvisoInvalido = null;
+            }
+            // Compara com "" (e não null) pra que um aluno sem telefone também conte como já avisado.
+            else if (EhFalhaDeContato(motivo) && cliente.TelefoneAvisoInvalido != (cliente.Telefone ?? ""))
+            {
+                contatosInvalidos.Add((cliente, motivo));
+            }
         }
 
         if (linhasRelatorio.Count > 0 && !string.IsNullOrWhiteSpace(empresa.WhatsappDono))
@@ -180,6 +224,30 @@ public class AlertaJobService
             await Task.Delay(IntervaloAleatorio(), ct);
             var relatorio = string.Join("\n", linhasRelatorio);
             await _whatsApp.EnviarAsync(empresa.WhatsappDono!, relatorio, empresa.WahaSession);
+        }
+
+        // Montado dentro da fila de UMA empresa — só leva alunos dela, ao contrário do aviso ao suporte.
+        if (contatosInvalidos.Count > 0 && !string.IsNullOrWhiteSpace(empresa.WhatsappDono))
+        {
+            await Task.Delay(IntervaloAleatorio(), ct);
+
+            var aviso = MontarAvisoContatosInvalidos(
+                contatosInvalidos.Select(c => new ContatoInvalido(c.Cliente.Id, c.Cliente.Nome, c.Motivo)),
+                _config["Frontend:BaseUrl"]);
+
+            var envioAviso = await _whatsApp.EnviarAsync(empresa.WhatsappDono!, aviso, empresa.WahaSession);
+
+            // Só marca como avisado se o aviso chegou — senão tenta de novo na próxima varredura.
+            // Não grava no banco aqui: as entidades estão rastreadas e o SaveChanges de ExecutarAsync persiste.
+            if (envioAviso.Sucesso)
+            {
+                foreach (var (cliente, _) in contatosInvalidos)
+                    cliente.TelefoneAvisoInvalido = cliente.Telefone ?? "";
+            }
+            else
+            {
+                _logger.LogWarning("Falha ao avisar o dono da empresa {IdEmpresa} sobre contatos inválidos: {Erro}", empresa.IdEmpresa, envioAviso.Erro);
+            }
         }
 
         return resultados;

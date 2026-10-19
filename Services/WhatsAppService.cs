@@ -32,6 +32,12 @@ public class WahaCheckExistsResponse
     public string? ChatId { get; set; }
 }
 
+public record ResultadoEnvio(bool Sucesso, string? Erro, MotivoFalhaEnvio Motivo)
+{
+    public static ResultadoEnvio Ok() => new(true, null, MotivoFalhaEnvio.Nenhum);
+    public static ResultadoEnvio Falha(string? erro, MotivoFalhaEnvio motivo = MotivoFalhaEnvio.Outro) => new(false, erro, motivo);
+}
+
 public class WhatsAppService
 {
     private readonly HttpClient _http;
@@ -45,20 +51,28 @@ public class WhatsAppService
         _logger = logger;
     }
 
-    public async Task<(bool Sucesso, string? Erro)> EnviarAsync(string telefone, string mensagem, string? session)
+    public async Task<ResultadoEnvio> EnviarAsync(string telefone, string mensagem, string? session)
     {
         var baseUrl = _config["Waha:BaseUrl"];
 
         if (string.IsNullOrWhiteSpace(baseUrl))
         {
             _logger.LogWarning("WAHA não configurado (Waha:BaseUrl vazio) — envio ignorado.");
-            return (false, "WAHA não configurado.");
+            return ResultadoEnvio.Falha("WAHA não configurado.");
         }
 
         if (string.IsNullOrWhiteSpace(session))
         {
             _logger.LogWarning("Empresa sem sessão WAHA configurada (ConfigEmpresa.WahaSession) — envio ignorado.");
-            return (false, "Empresa sem sessão WAHA configurada.");
+            return ResultadoEnvio.Falha("Empresa sem sessão WAHA configurada.");
+        }
+
+        // Telefone canônico é DDD + número (10 ou 11 dígitos, só Brasil — ver TelefoneUtils). Fora disso
+        // nem adianta perguntar pro WAHA: é cadastro errado, e o dono da academia é quem consegue corrigir.
+        if (TelefoneUtils.RemoverDdi(telefone).Length is not (10 or 11))
+        {
+            _logger.LogWarning("Telefone {Telefone} fora do formato DDD + número — envio cancelado.", telefone);
+            return ResultadoEnvio.Falha("Telefone inválido (esperado DDD + número).", MotivoFalhaEnvio.TelefoneInvalido);
         }
 
         baseUrl = baseUrl.TrimEnd('/');
@@ -76,7 +90,7 @@ public class WhatsAppService
             if (checagem is not null && !checagem.NumberExists)
             {
                 _logger.LogWarning("Número {Numero} não está registrado no WhatsApp — envio cancelado.", numero);
-                return (false, "Número não está registrado no WhatsApp.");
+                return ResultadoEnvio.Falha("Número não está registrado no WhatsApp.", MotivoFalhaEnvio.NumeroSemWhatsApp);
             }
 
             if (checagem is not null && !string.IsNullOrWhiteSpace(checagem.ChatId))
@@ -109,22 +123,28 @@ public class WhatsAppService
             {
                 var corpo = await resposta.Content.ReadAsStringAsync();
                 _logger.LogWarning("WAHA retornou {StatusCode} ao enviar para {ChatId}: {Corpo}", (int)resposta.StatusCode, chatId, corpo);
-                return (false, $"WAHA retornou {(int)resposta.StatusCode}: {corpo}");
+
+                // Se o check-exists falhou e o envio seguiu, número inexistente aparece aqui como "no LID found".
+                var motivo = corpo.Contains("no LID found", StringComparison.OrdinalIgnoreCase)
+                    ? MotivoFalhaEnvio.NumeroSemWhatsApp
+                    : MotivoFalhaEnvio.Outro;
+
+                return ResultadoEnvio.Falha($"WAHA retornou {(int)resposta.StatusCode}: {corpo}", motivo);
             }
 
-            return (true, null);
+            return ResultadoEnvio.Ok();
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Falha ao enviar mensagem via WAHA para {ChatId}", chatId);
-            return (false, ex.Message);
+            return ResultadoEnvio.Falha(ex.Message);
         }
     }
 
     /// <summary>Checa se o número existe no WhatsApp — GET /api/contacts/check-exists, conforme docs do WAHA.</summary>
     private async Task<WahaCheckExistsResponse?> VerificarNumeroExisteAsync(string baseUrl, string session, string numero)
     {
-        using var request = ConstruirRequest(HttpMethod.Get, $"{baseUrl}/api/contacts/check-exists?phone={numero}&session={session}");
+        using var request = ConstruirRequest(HttpMethod.Get, $"{baseUrl}/api/contacts/check-exists?phone={Uri.EscapeDataString(numero)}&session={Uri.EscapeDataString(session)}");
         var resposta = await _http.SendAsync(request);
 
         if (!resposta.IsSuccessStatusCode)
@@ -165,7 +185,7 @@ public class WhatsAppService
         // só reiniciar. /start é idempotente: só efetivamente inicia se não estiver rodando.
         if (resposta.StatusCode == HttpStatusCode.UnprocessableEntity)
         {
-            using var startRequest = ConstruirRequest(HttpMethod.Post, $"{baseUrl}/api/sessions/{session}/start");
+            using var startRequest = ConstruirRequest(HttpMethod.Post, $"{baseUrl}/api/sessions/{Uri.EscapeDataString(session)}/start");
             resposta = await _http.SendAsync(startRequest);
         }
 
@@ -179,7 +199,7 @@ public class WhatsAppService
     {
         var baseUrl = ExigirBaseUrl();
 
-        using var request = ConstruirRequest(HttpMethod.Get, $"{baseUrl}/api/sessions/{session}");
+        using var request = ConstruirRequest(HttpMethod.Get, $"{baseUrl}/api/sessions/{Uri.EscapeDataString(session)}");
         var resposta = await _http.SendAsync(request);
 
         // Sessão ainda não foi criada no WAHA (nunca chamou /iniciar) — não é um erro, é o estado inicial.
@@ -197,7 +217,7 @@ public class WhatsAppService
     {
         var baseUrl = ExigirBaseUrl();
 
-        using var request = ConstruirRequest(HttpMethod.Get, $"{baseUrl}/api/{session}/auth/qr");
+        using var request = ConstruirRequest(HttpMethod.Get, $"{baseUrl}/api/{Uri.EscapeDataString(session)}/auth/qr");
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
         var resposta = await _http.SendAsync(request);
@@ -211,7 +231,7 @@ public class WhatsAppService
     {
         var baseUrl = ExigirBaseUrl();
 
-        using var request = ConstruirRequest(HttpMethod.Post, $"{baseUrl}/api/{session}/auth/request-code");
+        using var request = ConstruirRequest(HttpMethod.Post, $"{baseUrl}/api/{Uri.EscapeDataString(session)}/auth/request-code");
         request.Content = JsonContent.Create(new { phoneNumber = telefone });
 
         var resposta = await _http.SendAsync(request);

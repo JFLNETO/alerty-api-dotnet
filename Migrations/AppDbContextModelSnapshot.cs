@@ -70,6 +70,10 @@ namespace Alerty.Api.Migrations
                         .HasColumnType("text")
                         .HasColumnName("telefone");
 
+                    b.Property<string>("TelefoneAvisoInvalido")
+                        .HasColumnType("text")
+                        .HasColumnName("telefone_aviso_invalido");
+
                     b.Property<string>("UrlFoto")
                         .HasColumnType("text")
                         .HasColumnName("url_foto");

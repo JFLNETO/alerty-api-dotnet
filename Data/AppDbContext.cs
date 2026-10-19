@@ -41,6 +41,7 @@ public class AppDbContext : DbContext
             entity.Property(c => c.IdServicos).HasColumnName("id_servicos");
             entity.Property(c => c.IdTurmas).HasColumnName("id_turmas");
             entity.Property(c => c.Selos).HasColumnName("selos");
+            entity.Property(c => c.TelefoneAvisoInvalido).HasColumnName("telefone_aviso_invalido");
         });
 
         modelBuilder.Entity<HistoricoPagamento>(entity =>
