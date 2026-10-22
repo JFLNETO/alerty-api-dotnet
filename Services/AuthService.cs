@@ -31,8 +31,8 @@ public class AuthService
         if (string.IsNullOrWhiteSpace(request.Senha))
             throw new AppException("Senha é obrigatória.");
 
-        if (request.Senha.Length < 6)
-            throw new AppException("A senha deve ter no mínimo 6 caracteres.");
+        if (request.Senha.Length < 8)
+            throw new AppException("A senha deve ter no mínimo 8 caracteres.");
 
         if (string.IsNullOrWhiteSpace(request.NomeDono))
             throw new AppException("Nome do dono é obrigatório.");

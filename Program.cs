@@ -31,6 +31,8 @@ builder.Services.AddHttpClient<WhatsAppService>();
 builder.Services.AddScoped<AlertaJobService>();
 builder.Services.AddHostedService<AlertaBackgroundService>();
 
+var jwtSecret = JwtConfig.ObterSecretValidado(builder.Configuration);
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -43,7 +45,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"]!))
+                Encoding.UTF8.GetBytes(jwtSecret))
         };
     });
 
@@ -52,6 +54,8 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("Admin", policy =>
         policy.RequireClaim("is_admin", "true"));
 });
+
+builder.Services.AddRateLimitAlerty();
 
 builder.Services.AddCors(options =>
 {
@@ -71,6 +75,9 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Primeiro de tudo: corrige o IP do cliente (atrás do proxy da Railway) antes de qualquer coisa usá-lo.
+app.UseForwardedHeaders();
 
 app.UseExceptionHandler(errorApp =>
 {
@@ -96,6 +103,8 @@ app.UseExceptionHandler(errorApp =>
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
+// Depois da autenticação: a política de WhatsApp particiona pelo id_empresa do JWT.
+app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment())
 {

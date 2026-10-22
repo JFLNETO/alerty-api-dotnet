@@ -20,7 +20,7 @@ public static class EmpresaEndpoints
             var session = empresaService.GarantirWahaSession(idEmpresa);
             var status = await whatsApp.IniciarSessaoAsync(session);
             return Results.Ok(status);
-        }).RequireAuthorization();
+        }).RequireAuthorization().RequireRateLimiting(RateLimitConfig.WhatsApp);
 
         app.MapGet("/empresa/whatsapp/status", async (
             ClaimsPrincipal user,
@@ -32,7 +32,7 @@ public static class EmpresaEndpoints
             var session = empresaService.GarantirWahaSession(idEmpresa);
             var status = await whatsApp.ObterStatusAsync(session);
             return Results.Ok(status);
-        }).RequireAuthorization();
+        }).RequireAuthorization().RequireRateLimiting(RateLimitConfig.WhatsApp);
 
         app.MapGet("/empresa/whatsapp/qr", async (
             ClaimsPrincipal user,
@@ -44,7 +44,7 @@ public static class EmpresaEndpoints
             var session = empresaService.GarantirWahaSession(idEmpresa);
             var qr = await whatsApp.ObterQrCodeAsync(session);
             return Results.Ok(qr);
-        }).RequireAuthorization();
+        }).RequireAuthorization().RequireRateLimiting(RateLimitConfig.WhatsApp);
 
         app.MapPost("/empresa/whatsapp/pairing-code", async (
             ClaimsPrincipal user,
@@ -60,6 +60,6 @@ public static class EmpresaEndpoints
             var session = empresaService.GarantirWahaSession(idEmpresa);
             var codigo = await whatsApp.SolicitarPairingCodeAsync(session, request.Telefone);
             return Results.Ok(new { codigo });
-        }).RequireAuthorization();
+        }).RequireAuthorization().RequireRateLimiting(RateLimitConfig.WhatsApp);
     }
 }
